@@ -1,0 +1,46 @@
+{
+  "_comment": "Copy the relevant section into your MCP client config file.",
+
+  "claude_desktop": {
+    "_file": "~/Library/Application Support/Claude/claude_desktop_config.json",
+    "mcpServers": {
+      "openclaw-finops": {
+        "type": "streamable-http",
+        "url": "https://openclaw-finops.marywomack.workers.dev/mcp",
+        "headers": {
+          "x-api-key": "YOUR_API_KEY"
+        }
+      }
+    }
+  },
+
+  "cursor": {
+    "_file": ".cursor/mcp.json",
+    "mcpServers": {
+      "openclaw-finops": {
+        "type": "streamable-http",
+        "url": "https://openclaw-finops.marywomack.workers.dev/mcp",
+        "headers": {
+          "x-api-key": "YOUR_API_KEY"
+        }
+      }
+    }
+  },
+
+  "windsurf": {
+    "_file": "~/.codeium/windsurf/mcp_config.json",
+    "mcpServers": {
+      "openclaw-finops": {
+        "type": "streamable-http",
+        "url": "https://openclaw-finops.marywomack.workers.dev/mcp",
+        "headers": {
+          "x-api-key": "YOUR_API_KEY"
+        }
+      }
+    }
+  },
+
+  "claude_code": {
+    "_instructions": "Run: claude mcp add openclaw-finops --transport http https://openclaw-finops.marywomack.workers.dev/mcp --header 'x-api-key: YOUR_API_KEY'"
+  }
+}

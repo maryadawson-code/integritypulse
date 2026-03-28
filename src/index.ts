@@ -94,6 +94,53 @@ app.get("/.well-known/agent.json", (c) => {
 });
 
 // ---------------------------------------------------------------------------
+// Discovery: /.well-known/ai — AI service discovery endpoint
+// Provides a single document for crawlers to understand identity, tools, auth.
+// ---------------------------------------------------------------------------
+app.get("/.well-known/ai", (c) => {
+  return c.json({
+    version: "1.0",
+    name: "OpenClaw FinOps",
+    description:
+      "Cloud deployment cost forecasting for AI agents. Returns verified, " +
+      "line-item pricing for AWS, GCP, and Azure from a deterministic pricing " +
+      "matrix. Prevents cost hallucinations in agentic infrastructure workflows.",
+    url: "https://openclaw-finops.marywomack.workers.dev",
+    contact: "support@openclaw.com",
+    protocols: {
+      mcp: {
+        version: "1.0.0",
+        endpoint: "https://openclaw-finops.marywomack.workers.dev/mcp",
+        transport: "streamable-http",
+      },
+    },
+    authentication: {
+      type: "apiKey",
+      header: "x-api-key",
+      free_tier: {
+        limit: 25,
+        period: "month",
+        upgrade_url: "https://billing.openclaw.com/upgrade",
+      },
+    },
+    tools: [
+      {
+        name: "forecast_deployment_cost",
+        description:
+          "Estimate monthly cloud deployment cost for AWS, GCP, or Azure services.",
+        providers: ["AWS", "GCP", "AZURE"],
+      },
+    ],
+    discovery: {
+      mcp_manifest: "/.well-known/mcp",
+      a2a_agent_card: "/.well-known/agent.json",
+      llms_txt: "/llms.txt",
+      llms_full_txt: "/llms-full.txt",
+    },
+  });
+});
+
+// ---------------------------------------------------------------------------
 // MCP endpoint — Revenue Gate middleware → Streamable HTTP transport
 // ---------------------------------------------------------------------------
 app.post("/mcp", async (c) => {
