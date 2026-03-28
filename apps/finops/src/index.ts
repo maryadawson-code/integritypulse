@@ -55,9 +55,9 @@ app.get("/.well-known/mcp", (c) => {
 // ---------------------------------------------------------------------------
 app.get("/.well-known/agent.json", (c) => {
   return c.json({
-    name: "OpenClaw FinOps",
+    name: "OpenClaw Integrity Suite",
     description:
-      "Cloud deployment cost forecasting agent. Returns verified, line-item pricing for AWS, GCP, and Azure.",
+      "Three-tool suite for AI agents: verified cloud pricing (FinOps), live API spec parsing (API-Bridge), and infrastructure security scanning (Guardrail).",
     url: "https://openclaw-finops.marywomack.workers.dev",
     version: "1.0.0",
     capabilities: { streaming: false, pushNotifications: false },
@@ -68,12 +68,23 @@ app.get("/.well-known/agent.json", (c) => {
       {
         id: "forecast_deployment_cost",
         name: "Forecast Deployment Cost",
-        description:
-          "Estimate monthly cloud deployment cost for AWS, GCP, or Azure.",
+        description: "Estimate monthly cloud deployment cost for AWS, GCP, or Azure.",
         tags: ["finops", "cloud-pricing", "aws", "gcp", "azure"],
-        examples: [
-          "What would it cost to run an m5.large with a managed Postgres on AWS?",
-        ],
+        examples: ["What would it cost to run an m5.large with a managed Postgres on AWS?"],
+      },
+      {
+        id: "bridge_api_spec",
+        name: "Bridge API Spec",
+        description: "Fetch and parse an OpenAPI/Swagger spec into structured endpoint definitions.",
+        tags: ["api", "openapi", "swagger", "integration"],
+        examples: ["Parse the Stripe API spec and show me the endpoints for creating charges."],
+      },
+      {
+        id: "audit_infrastructure_code",
+        name: "Audit Infrastructure Code",
+        description: "Scan Terraform/CloudFormation/Pulumi for security vulnerabilities and ghost costs.",
+        tags: ["security", "iac", "terraform", "guardrail", "enterprise"],
+        examples: ["Audit this Terraform for security issues before I deploy."],
       },
     ],
   });
@@ -88,7 +99,7 @@ app.get("/.well-known/ai", (c) => {
     service: {
       name: "OpenClaw Suite",
       description:
-        "AI agent tool suite. FinOps provides verified cloud pricing. API-Bridge fetches live OpenAPI specs and converts them into executable tool definitions.",
+        "OpenClaw Integrity Suite. Three tools: FinOps (verified cloud pricing), API-Bridge (live OpenAPI spec parsing), Guardrail (IaC security scanning). One API key, tiered billing.",
       category: ["finance", "developer"],
       language: ["en"],
     },
