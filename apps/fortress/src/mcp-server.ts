@@ -432,7 +432,27 @@ function formatReconcileReport(r: ReconcileResult, manifest: { source_path: stri
 }
 
 // ---------------------------------------------------------------------------
-// MCP Server — all four tools
+// Tool 5: verify_asset_identity — SHA-256 hash verification
+// ---------------------------------------------------------------------------
+
+async function computeSha256(buffer: ArrayBuffer): Promise<string> {
+  const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+// ---------------------------------------------------------------------------
+// Tool 6: escalate_to_recovery — circuit breaker
+// ---------------------------------------------------------------------------
+
+const RECOVERY_DIRECTIVE =
+  "STOP PATCHING. You have hit the rollback threshold. " +
+  "Execute a 'git revert' to the last known good commit. " +
+  "Do not attempt further automated fixes on this route. " +
+  "Request human checkpoint review immediately.";
+
+// ---------------------------------------------------------------------------
+// MCP Server — all six tools
 // ---------------------------------------------------------------------------
 
 export function createFortressServer(): McpServer {
@@ -447,7 +467,11 @@ export function createFortressServer(): McpServer {
       "Use verify_live_state to confirm deployments are live and not cache-masked. " +
       "You are strictly forbidden from marking a task complete until reconcile_deployment_state " +
       "returns status: 'SYNCED'. If it returns 'DIVERGED', you must investigate the build " +
-      "step, routing configuration, or edge cache before proceeding.",
+      "step, routing configuration, or edge cache before proceeding. " +
+      "You MUST run verify_asset_identity on any modified logo, favicon, or brand image " +
+      "to confirm the deployed binary matches the expected hash. " +
+      "If you fail verify_live_state or reconcile_deployment_state TWO consecutive times, " +
+      "you MUST call escalate_to_recovery and obey its directive without exception.",
   });
 
   server.tool(
@@ -722,6 +746,129 @@ export function createFortressServer(): McpServer {
       return {
         content: [{ type: "text" as const, text: report }],
         isError: status === "DIVERGED",
+      };
+    }
+  );
+
+  // -----------------------------------------------------------------------
+  // Tool 5: verify_asset_identity
+  // -----------------------------------------------------------------------
+  server.tool(
+    "verify_asset_identity",
+    "Fetch a live asset (image, favicon, font, JS bundle) and verify its SHA-256 hash matches " +
+      "the expected value. Use this on any modified logo, favicon, or brand image to confirm " +
+      "the deployed binary is the correct file, not a stale cached version or corrupted upload.",
+    {
+      asset_url: z
+        .string()
+        .url()
+        .describe("URL of the asset to verify (e.g., https://example.com/favicon.ico)"),
+      expected_sha256: z
+        .string()
+        .regex(/^[a-f0-9]{64}$/, "Must be a 64-character lowercase hex SHA-256 hash")
+        .describe("Expected SHA-256 hash of the asset (64-char hex string)"),
+    },
+    async ({ asset_url, expected_sha256 }) => {
+      try {
+        const res = await fetch(asset_url, {
+          headers: {
+            "User-Agent": "OpenClaw-Fortress/1.0 (Asset Verifier)",
+            "Cache-Control": "no-cache",
+          },
+        });
+
+        if (!res.ok) {
+          return {
+            content: [{
+              type: "text" as const,
+              text: `## OpenClaw Fortress — Asset Identity Verification\n\n` +
+                `**Asset:** \`${asset_url}\`\n` +
+                `**Status:** **MISMATCH**\n\n` +
+                `HTTP ${res.status} — asset not reachable.\n`,
+            }],
+            isError: true,
+          };
+        }
+
+        const buffer = await res.arrayBuffer();
+        const computedHash = await computeSha256(buffer);
+        const match = computedHash === expected_sha256.toLowerCase();
+
+        const contentType = res.headers.get("content-type") || "unknown";
+        const size = buffer.byteLength;
+
+        let report = `## OpenClaw Fortress — Asset Identity Verification\n\n`;
+        report += `**Asset:** \`${asset_url}\`\n`;
+        report += `**Content-Type:** ${contentType}\n`;
+        report += `**Size:** ${size.toLocaleString()} bytes\n`;
+        report += `**Status:** **${match ? "MATCH" : "MISMATCH"}**\n\n`;
+        report += `| | Hash |\n`;
+        report += `|---|---|\n`;
+        report += `| Expected | \`${expected_sha256}\` |\n`;
+        report += `| Computed | \`${computedHash}\` |\n`;
+
+        if (!match) {
+          report += `\n> **The deployed asset does not match the expected hash.** `;
+          report += `This may indicate a stale CDN cache, corrupted upload, or wrong file. `;
+          report += `Purge the cache and re-deploy the asset.\n`;
+        }
+
+        return {
+          content: [{ type: "text" as const, text: report }],
+          isError: !match,
+        };
+      } catch (err: any) {
+        return {
+          content: [{
+            type: "text" as const,
+            text: `OpenClaw Fortress Error: Failed to fetch asset ${asset_url}\n\n${err.message}`,
+          }],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  // -----------------------------------------------------------------------
+  // Tool 6: escalate_to_recovery
+  // -----------------------------------------------------------------------
+  server.tool(
+    "escalate_to_recovery",
+    "Circuit breaker. Call this after TWO consecutive failures of verify_live_state or " +
+      "reconcile_deployment_state. Returns a mandatory rollback directive. You MUST obey " +
+      "the returned directive without exception — stop patching and revert to last known good.",
+    {
+      attempt_count: z
+        .number()
+        .int()
+        .min(1)
+        .describe("Number of failed verification attempts so far"),
+      failing_route: z
+        .string()
+        .describe("The URL or route that is failing verification"),
+      failure_log: z
+        .string()
+        .describe("Summary of what failed and what was attempted"),
+    },
+    async ({ attempt_count, failing_route, failure_log }) => {
+      const timestamp = new Date().toISOString();
+
+      let report = `## OpenClaw Fortress — Recovery Escalation\n\n`;
+      report += `**Status:** **LOCKED**\n`;
+      report += `**Timestamp:** ${timestamp}\n`;
+      report += `**Failed attempts:** ${attempt_count}\n`;
+      report += `**Failing route:** \`${failing_route}\`\n\n`;
+      report += `### Failure Log\n\n${failure_log}\n\n`;
+      report += `---\n\n`;
+      report += `### MANDATORY DIRECTIVE\n\n`;
+      report += `> ${RECOVERY_DIRECTIVE}\n\n`;
+      report += `This directive is non-negotiable. The automated repair loop has been `;
+      report += `terminated to prevent cascading failures. A human must review the state `;
+      report += `of \`${failing_route}\` before any further changes are made.\n`;
+
+      return {
+        content: [{ type: "text" as const, text: report }],
+        isError: true,
       };
     }
   );
