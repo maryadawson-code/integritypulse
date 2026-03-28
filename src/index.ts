@@ -236,7 +236,7 @@ app.post("/api/webhook/stripe", async (c) => {
 
       // Determine tier from the price ID in session metadata or line items
       const priceId = session.metadata?.price_id;
-      const tier = priceId === "price_enterprise_id" ? "ENTERPRISE" as const : "PRO" as const;
+      const tier = priceId === "price_1TG19DJ8qAPoi4y2q08hGQzo" ? "ENTERPRISE" as const : "PRO" as const;
 
       const upgradedUser = await upgradeUser(supabase, userId, tier);
 
