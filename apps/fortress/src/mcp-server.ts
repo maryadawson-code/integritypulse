@@ -1,5 +1,11 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  getCanonicalAsset,
+  getRouteManifest,
+  getForbiddenPatterns,
+} from "@openclaw/core";
 
 // Headers that reveal cache vs origin behavior
 const CACHE_HEADERS = [
@@ -455,7 +461,7 @@ const RECOVERY_DIRECTIVE =
 // MCP Server — all six tools
 // ---------------------------------------------------------------------------
 
-export function createFortressServer(): McpServer {
+export function createFortressServer(supabase?: SupabaseClient): McpServer {
   const server = new McpServer({
     name: "openclaw-fortress",
     version: "1.0.0",
@@ -471,7 +477,10 @@ export function createFortressServer(): McpServer {
       "You MUST run verify_asset_identity on any modified logo, favicon, or brand image " +
       "to confirm the deployed binary matches the expected hash. " +
       "If you fail verify_live_state or reconcile_deployment_state TWO consecutive times, " +
-      "you MUST call escalate_to_recovery and obey its directive without exception.",
+      "you MUST call escalate_to_recovery and obey its directive without exception. " +
+      "You MUST run query_canonical_truth BEFORE making any asset swaps, route changes, " +
+      "or content modifications to understand the strict parameters you must operate within. " +
+      "Your prompt context is NOT the source of truth; the registry is.",
   });
 
   server.tool(
@@ -870,6 +879,131 @@ export function createFortressServer(): McpServer {
         content: [{ type: "text" as const, text: report }],
         isError: true,
       };
+    }
+  );
+
+  // -----------------------------------------------------------------------
+  // Tool 7: query_canonical_truth
+  // -----------------------------------------------------------------------
+  server.tool(
+    "query_canonical_truth",
+    "Query the canonical truth registry BEFORE making asset swaps, route changes, or content " +
+      "modifications. Returns the authoritative record from Supabase — your prompt context is " +
+      "NOT the source of truth, the registry is. Use query_type='asset' for logos/favicons, " +
+      "'route' for page routes, 'forbidden_strings' for the current forbidden content list.",
+    {
+      query_type: z
+        .enum(["asset", "route", "forbidden_strings"])
+        .describe("Type of canonical data to query"),
+      target: z
+        .string()
+        .default("")
+        .describe("The asset purpose (e.g., 'primary_favicon') or route path (e.g., '/about'). Ignored for forbidden_strings."),
+    },
+    async ({ query_type, target }) => {
+      if (!supabase) {
+        return {
+          content: [{
+            type: "text" as const,
+            text: "OpenClaw Fortress Error: Supabase client not available. Registry queries require a database connection.",
+          }],
+          isError: true,
+        };
+      }
+
+      try {
+        if (query_type === "asset") {
+          if (!target) {
+            return {
+              content: [{ type: "text" as const, text: "Error: 'target' is required for asset queries. Provide the asset_purpose (e.g., 'primary_favicon', 'logo_dark')." }],
+              isError: true,
+            };
+          }
+
+          const asset = await getCanonicalAsset(supabase, target);
+          if (!asset) {
+            return {
+              content: [{
+                type: "text" as const,
+                text: `## OpenClaw Fortress — Canonical Truth\n\n**Query:** asset \`${target}\`\n**Result:** NOT FOUND\n\nNo active asset registered with purpose \`${target}\`. Register it in the \`asset_registry\` table before proceeding.`,
+              }],
+              isError: true,
+            };
+          }
+
+          let report = `## OpenClaw Fortress — Canonical Truth\n\n`;
+          report += `**Query type:** Asset\n`;
+          report += `**Purpose:** ${asset.asset_purpose}\n`;
+          report += `**Status:** ${asset.status}\n\n`;
+          report += `| Property | Value |\n`;
+          report += `|----------|-------|\n`;
+          report += `| Canonical path | \`${asset.canonical_path}\` |\n`;
+          report += `| Expected SHA-256 | \`${asset.expected_sha256}\` |\n`;
+          report += `\n> Use this SHA-256 hash with \`verify_asset_identity\` after deployment.\n`;
+
+          return { content: [{ type: "text" as const, text: report }] };
+        }
+
+        if (query_type === "route") {
+          if (!target) {
+            return {
+              content: [{ type: "text" as const, text: "Error: 'target' is required for route queries. Provide the route_path (e.g., '/about', '/pricing')." }],
+              isError: true,
+            };
+          }
+
+          const route = await getRouteManifest(supabase, target);
+          if (!route) {
+            return {
+              content: [{
+                type: "text" as const,
+                text: `## OpenClaw Fortress — Canonical Truth\n\n**Query:** route \`${target}\`\n**Result:** NOT FOUND\n\nNo route manifest registered for \`${target}\`. Register it in the \`route_manifest\` table before proceeding.`,
+              }],
+              isError: true,
+            };
+          }
+
+          let report = `## OpenClaw Fortress — Canonical Truth\n\n`;
+          report += `**Query type:** Route\n`;
+          report += `**Route:** ${route.route_path}\n\n`;
+          report += `| Property | Value |\n`;
+          report += `|----------|-------|\n`;
+          report += `| Canonical URL | \`${route.canonical_url}\` |\n`;
+          report += `| Expected shell signature | \`${route.expected_shell_signature}\` |\n`;
+          report += `\n> Use this URL and signature with \`verify_live_state\` and \`reconcile_deployment_state\`.\n`;
+
+          return { content: [{ type: "text" as const, text: report }] };
+        }
+
+        if (query_type === "forbidden_strings") {
+          const patterns = await getForbiddenPatterns(supabase);
+
+          let report = `## OpenClaw Fortress — Canonical Truth\n\n`;
+          report += `**Query type:** Forbidden Strings\n`;
+          report += `**Patterns registered:** ${patterns.length}\n\n`;
+          report += `| Pattern | Category |\n`;
+          report += `|---------|----------|\n`;
+          for (const p of patterns) {
+            report += `| \`${p.keyword_pattern}\` | ${p.category} |\n`;
+          }
+          report += `\n> These patterns are enforced by \`pre_flight_firewall\`. Any match blocks the build.\n`;
+
+          return { content: [{ type: "text" as const, text: report }] };
+        }
+
+        return {
+          content: [{ type: "text" as const, text: "Unknown query_type." }],
+          isError: true,
+        };
+      } catch (err: any) {
+        return {
+          content: [{
+            type: "text" as const,
+            text: `OpenClaw Fortress Error: Registry query failed.\n\n${err.message}`,
+          }],
+          isError: true,
+        };
+      }
     }
   );
 

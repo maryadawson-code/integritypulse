@@ -16,6 +16,12 @@ export {
   incrementUsage,
   upgradeUser,
   type UserRecord,
+  getCanonicalAsset,
+  getRouteManifest,
+  getForbiddenPatterns,
+  type AssetRegistryEntry,
+  type RouteManifestEntry,
+  type ForbiddenContentEntry,
 } from "./supabase.js";
 
 export { sendProWelcomeEmail, type WelcomeEmailData } from "./email.js";

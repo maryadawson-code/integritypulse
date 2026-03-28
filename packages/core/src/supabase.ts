@@ -130,3 +130,69 @@ export async function upgradeUser(
 
   return getUserById(supabase, userId);
 }
+
+// =========================================================================
+// Fortress Registry Types & Queries
+// =========================================================================
+
+export interface AssetRegistryEntry {
+  id: string;
+  asset_purpose: string;
+  canonical_path: string;
+  expected_sha256: string;
+  status: "active" | "deprecated";
+}
+
+export interface RouteManifestEntry {
+  id: string;
+  route_path: string;
+  canonical_url: string;
+  expected_shell_signature: string;
+}
+
+export interface ForbiddenContentEntry {
+  id: string;
+  keyword_pattern: string;
+  category: "prompt_leak" | "placeholder" | "internal_note";
+}
+
+export async function getCanonicalAsset(
+  supabase: SupabaseClient,
+  purpose: string
+): Promise<AssetRegistryEntry | null> {
+  const { data, error } = await supabase
+    .from("asset_registry")
+    .select("*")
+    .eq("asset_purpose", purpose)
+    .eq("status", "active")
+    .single();
+
+  if (error || !data) return null;
+  return data as AssetRegistryEntry;
+}
+
+export async function getRouteManifest(
+  supabase: SupabaseClient,
+  route: string
+): Promise<RouteManifestEntry | null> {
+  const { data, error } = await supabase
+    .from("route_manifest")
+    .select("*")
+    .eq("route_path", route)
+    .single();
+
+  if (error || !data) return null;
+  return data as RouteManifestEntry;
+}
+
+export async function getForbiddenPatterns(
+  supabase: SupabaseClient
+): Promise<ForbiddenContentEntry[]> {
+  const { data, error } = await supabase
+    .from("forbidden_content")
+    .select("*")
+    .order("category");
+
+  if (error || !data) return [];
+  return data as ForbiddenContentEntry[];
+}

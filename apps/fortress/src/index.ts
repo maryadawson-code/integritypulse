@@ -121,7 +121,7 @@ app.post("/mcp", async (c) => {
     body: rawBody,
   });
 
-  const server = createFortressServer();
+  const server = createFortressServer(supabase);
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
     enableJsonResponse: true,
