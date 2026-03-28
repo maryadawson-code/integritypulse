@@ -1,28 +1,22 @@
 {
-  "name": "openclaw-finops",
+  "name": "openclaw-suite",
   "version": "1.0.0",
-  "description": "OpenClaw FinOps MCP Server — cloud cost forecasting",
+  "private": true,
+  "description": "OpenClaw Suite — Revenue-gated MCP servers for AI agents",
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
-    "typecheck": "tsc --noEmit"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.28.0",
-    "@supabase/supabase-js": "^2.100.1",
-    "hono": "^4.12.9",
-    "stripe": "^21.0.1"
+    "dev": "pnpm --filter @openclaw/finops dev",
+    "dev:finops": "pnpm --filter @openclaw/finops dev",
+    "dev:api-bridge": "pnpm --filter @openclaw/api-bridge dev",
+    "deploy:finops": "pnpm --filter @openclaw/finops deploy",
+    "deploy:api-bridge": "pnpm --filter @openclaw/api-bridge deploy",
+    "deploy:all": "pnpm -r deploy",
+    "typecheck": "pnpm -r typecheck"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20260317.1",
     "@types/node": "^25.5.0",
     "dotenv": "^17.3.1",
     "tsx": "^4.21.0",
-    "typescript": "^6.0.2",
-    "wrangler": "^4.78.0"
+    "turbo": "^2.5.0"
   }
 }

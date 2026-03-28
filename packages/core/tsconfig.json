@@ -6,12 +6,11 @@
     "lib": ["ES2022"],
     "strict": true,
     "esModuleInterop": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": true,
+    "outDir": "dist",
+    "rootDir": "src"
   },
-  "references": [
-    { "path": "packages/core" },
-    { "path": "apps/finops" },
-    { "path": "apps/api-bridge" }
-  ],
-  "include": []
+  "include": ["src/**/*.ts"]
 }

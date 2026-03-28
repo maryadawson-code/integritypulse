@@ -1,0 +1,23 @@
+// @openclaw/core — shared auth, billing, and database logic for all OpenClaw servers
+
+export {
+  authenticateAndCheckLimits,
+  extractApiKey,
+  extractReferralCode,
+  type AuthResult,
+} from "./auth.js";
+
+export {
+  getSupabaseClient,
+  getUserByApiKey,
+  getUserByReferralCode,
+  getUserById,
+  linkReferral,
+  incrementUsage,
+  upgradeUser,
+  type UserRecord,
+} from "./supabase.js";
+
+export { sendProWelcomeEmail, type WelcomeEmailData } from "./email.js";
+
+export { handleStripeWebhook, type StripeEnv } from "./stripe.js";
