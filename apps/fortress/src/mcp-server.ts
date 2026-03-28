@@ -152,15 +152,202 @@ function formatReport(result: VerificationResult): string {
   return report;
 }
 
+// ---------------------------------------------------------------------------
+// Tool 2: pre_flight_firewall — scan code for forbidden content
+// ---------------------------------------------------------------------------
+
+interface FirewallFinding {
+  file: string;
+  line: number;
+  rule: string;
+  match: string;
+}
+
+const FORBIDDEN_RULES: Array<{ id: string; name: string; pattern: RegExp }> = [
+  { id: "FW-001", name: "Leaked code block backticks", pattern: /^```/m },
+  { id: "FW-002", name: "TODO tag", pattern: /\bTODO:/i },
+  { id: "FW-003", name: "FIXME tag", pattern: /\bFIXME:/i },
+  { id: "FW-004", name: "PLACEHOLDER tag", pattern: /\bPLACEHOLDER:/i },
+  { id: "FW-005", name: "AI prompt leakage: 'Here is the code'", pattern: /\bHere is the code:/i },
+  { id: "FW-006", name: "AI prompt leakage: 'Certainly!'", pattern: /\bCertainly!/i },
+  { id: "FW-007", name: "AI prompt leakage: 'As an AI'", pattern: /\bAs an AI\b/i },
+  { id: "FW-008", name: "AI prompt leakage: 'I'd be happy to'", pattern: /\bI'd be happy to\b/i },
+  { id: "FW-009", name: "AI prompt leakage: 'Sure thing'", pattern: /\bSure thing[!,.]?\s/i },
+  { id: "FW-010", name: "Hardcoded secret pattern", pattern: /(?:api[_-]?key|secret|password)\s*[:=]\s*["'][A-Za-z0-9]{16,}/i },
+];
+
+function scanFilesForForbidden(
+  files: Array<{ path: string; content: string }>
+): { status: "PASSED" | "BLOCKED"; findings: FirewallFinding[] } {
+  const findings: FirewallFinding[] = [];
+
+  for (const file of files) {
+    const lines = file.content.split("\n");
+    for (let i = 0; i < lines.length; i++) {
+      for (const rule of FORBIDDEN_RULES) {
+        if (rule.pattern.test(lines[i])) {
+          const matchText = lines[i].trim();
+          findings.push({
+            file: file.path,
+            line: i + 1,
+            rule: `${rule.id}: ${rule.name}`,
+            match: matchText.length > 80 ? matchText.substring(0, 77) + "..." : matchText,
+          });
+        }
+      }
+    }
+  }
+
+  return {
+    status: findings.length > 0 ? "BLOCKED" : "PASSED",
+    findings,
+  };
+}
+
+function formatFirewallReport(result: ReturnType<typeof scanFilesForForbidden>, fileCount: number): string {
+  let report = `## OpenClaw Fortress — Pre-Flight Firewall\n\n`;
+  report += `**Files scanned:** ${fileCount}\n`;
+  report += `**Status:** **${result.status}**\n\n`;
+
+  if (result.status === "PASSED") {
+    report += `No forbidden patterns detected. Clear for build/commit.\n`;
+    return report;
+  }
+
+  report += `**Findings:** ${result.findings.length} violation(s) — resolve before committing.\n\n`;
+  report += `| File | Line | Rule | Match |\n`;
+  report += `|------|------|------|-------|\n`;
+  for (const f of result.findings) {
+    report += `| \`${f.file}\` | ${f.line} | ${f.rule} | \`${f.match}\` |\n`;
+  }
+  report += `\n> **Do not commit or build until all findings are resolved.**\n`;
+
+  return report;
+}
+
+// ---------------------------------------------------------------------------
+// Tool 3: simulate_blast_radius — check change scope vs declared intent
+// ---------------------------------------------------------------------------
+
+// File categories for blast radius analysis
+const GLOBAL_CONFIG_PATTERNS = [
+  /global\.css$/i, /globals\.css$/i, /global\.scss$/i,
+  /index\.html$/i, /app\.html$/i, /_app\.tsx?$/i, /_document\.tsx?$/i,
+  /layout\.tsx?$/i, /root\.tsx?$/i,
+  /\.env/, /config\.(ts|js|json)$/i, /wrangler\.toml$/i,
+];
+
+const SHARED_SHELL_PATTERNS = [
+  /header\.tsx?$/i, /footer\.tsx?$/i, /nav(bar|igation)?\.tsx?$/i,
+  /sidebar\.tsx?$/i, /layout\.tsx?$/i, /shell\.tsx?$/i,
+  /app-shell\.tsx?$/i, /wrapper\.tsx?$/i,
+];
+
+const ROUTING_STATE_PATTERNS = [
+  /router\.(ts|tsx|js)$/i, /routes\.(ts|tsx|js)$/i,
+  /store\.(ts|tsx|js)$/i, /context\.(ts|tsx|js)$/i,
+  /reducer\.(ts|tsx|js)$/i, /middleware\.(ts|tsx|js)$/i,
+  /api\/.*\.(ts|tsx|js)$/i,
+];
+
+function matchesAny(file: string, patterns: RegExp[]): boolean {
+  return patterns.some((p) => p.test(file));
+}
+
+interface BlastResult {
+  status: "PASSED" | "BLOCKED";
+  declared_class: string;
+  violations: Array<{ file: string; reason: string }>;
+  explanation: string;
+}
+
+function simulateBlast(
+  modifiedFiles: string[],
+  declaredClass: string
+): BlastResult {
+  const violations: Array<{ file: string; reason: string }> = [];
+
+  for (const file of modifiedFiles) {
+    if (declaredClass === "content-only") {
+      if (matchesAny(file, GLOBAL_CONFIG_PATTERNS)) {
+        violations.push({ file, reason: "Content-only changes cannot modify global configuration." });
+      }
+      if (matchesAny(file, SHARED_SHELL_PATTERNS)) {
+        violations.push({ file, reason: "Content-only changes cannot modify shared shell components." });
+      }
+      if (matchesAny(file, ROUTING_STATE_PATTERNS)) {
+        violations.push({ file, reason: "Content-only changes cannot modify routing or state logic." });
+      }
+    }
+
+    if (declaredClass === "style-only") {
+      if (matchesAny(file, ROUTING_STATE_PATTERNS)) {
+        violations.push({ file, reason: "Style-only changes cannot modify routing or state logic." });
+      }
+      // Style changes to global CSS are expected, but modifying component logic is not
+      if (!file.match(/\.(css|scss|sass|less|styl)$/i) && !matchesAny(file, GLOBAL_CONFIG_PATTERNS)) {
+        if (file.match(/\.(ts|tsx|js|jsx)$/i)) {
+          violations.push({ file, reason: "Style-only changes should not modify TypeScript/JavaScript source files." });
+        }
+      }
+    }
+
+    if (declaredClass === "shared-shell") {
+      // Shared-shell changes are expected to touch shell components — no restriction there
+      // But flag if they touch unrelated content pages
+      if (file.match(/\/(pages|views|screens)\//i) && !matchesAny(file, SHARED_SHELL_PATTERNS)) {
+        violations.push({ file, reason: "Shared-shell changes should not modify individual page components." });
+      }
+    }
+  }
+
+  const status = violations.length > 0 ? "BLOCKED" : "PASSED";
+  let explanation: string;
+
+  if (status === "PASSED") {
+    explanation = `All ${modifiedFiles.length} modified file(s) are consistent with the declared "${declaredClass}" change class.`;
+  } else {
+    explanation =
+      `${violations.length} file(s) violate the declared "${declaredClass}" scope. ` +
+      `This indicates the change has a wider blast radius than intended. ` +
+      `Either reclassify the change or remove the out-of-scope modifications.`;
+  }
+
+  return { status, declared_class: declaredClass, violations, explanation };
+}
+
+function formatBlastReport(result: BlastResult): string {
+  let report = `## OpenClaw Fortress — Blast Radius Simulation\n\n`;
+  report += `**Declared change class:** ${result.declared_class}\n`;
+  report += `**Status:** **${result.status}**\n\n`;
+  report += `${result.explanation}\n\n`;
+
+  if (result.violations.length > 0) {
+    report += `| File | Violation |\n`;
+    report += `|------|-----------|\n`;
+    for (const v of result.violations) {
+      report += `| \`${v.file}\` | ${v.reason} |\n`;
+    }
+    report += `\n> **Reclassify the change or remove out-of-scope modifications before proceeding.**\n`;
+  }
+
+  return report;
+}
+
+// ---------------------------------------------------------------------------
+// MCP Server — all three tools
+// ---------------------------------------------------------------------------
+
 export function createFortressServer(): McpServer {
   const server = new McpServer({
     name: "openclaw-fortress",
     version: "1.0.0",
     instructions:
-      "You are connected to OpenClaw Fortress, a zero-trust live state verification engine. " +
-      "Use verify_live_state to confirm what a URL actually returns RIGHT NOW — bypassing " +
-      "edge caches if needed. Use this before making deployment decisions, verifying DNS " +
-      "propagation, checking if a fix is live, or confirming that a page matches expectations.",
+      "You are connected to OpenClaw Fortress, a zero-trust verification engine. " +
+      "You MUST run simulate_blast_radius before executing any file writes to verify " +
+      "the change scope matches the declared intent. You MUST run pre_flight_firewall " +
+      "before executing any build or git commit commands to catch forbidden content. " +
+      "Use verify_live_state to confirm deployments are live and not cache-masked.",
   });
 
   server.tool(
@@ -259,6 +446,64 @@ export function createFortressServer(): McpServer {
           isError: true,
         };
       }
+    }
+  );
+
+  // -----------------------------------------------------------------------
+  // Tool 2: pre_flight_firewall
+  // -----------------------------------------------------------------------
+  server.tool(
+    "pre_flight_firewall",
+    "Scan source files for forbidden content before build or commit. Catches leaked code block " +
+      "backticks, TODO/FIXME/PLACEHOLDER tags, AI prompt leakage ('Certainly!', 'As an AI'), " +
+      "and hardcoded secrets. Run this before every git commit or build command.",
+    {
+      files: z
+        .array(
+          z.object({
+            path: z.string().describe("File path (e.g., 'src/components/Header.tsx')"),
+            content: z.string().describe("Full file content to scan"),
+          })
+        )
+        .min(1)
+        .describe("Array of files to scan. Each entry has a path and content string."),
+    },
+    async ({ files }) => {
+      const result = scanFilesForForbidden(files);
+      const report = formatFirewallReport(result, files.length);
+
+      return {
+        content: [{ type: "text" as const, text: report }],
+        isError: result.status === "BLOCKED",
+      };
+    }
+  );
+
+  // -----------------------------------------------------------------------
+  // Tool 3: simulate_blast_radius
+  // -----------------------------------------------------------------------
+  server.tool(
+    "simulate_blast_radius",
+    "Verify that modified files match the declared change scope. Catches scope creep where " +
+      "a 'content-only' change accidentally modifies global CSS or shared shell components. " +
+      "Run this BEFORE writing files to verify the change won't have unintended side effects.",
+    {
+      modified_files: z
+        .array(z.string())
+        .min(1)
+        .describe("Array of file paths that will be modified (e.g., ['src/pages/about.tsx', 'src/global.css'])"),
+      declared_change_class: z
+        .enum(["content-only", "style-only", "shared-shell"])
+        .describe("The intended scope of the change"),
+    },
+    async ({ modified_files, declared_change_class }) => {
+      const result = simulateBlast(modified_files, declared_change_class);
+      const report = formatBlastReport(result);
+
+      return {
+        content: [{ type: "text" as const, text: report }],
+        isError: result.status === "BLOCKED",
+      };
     }
   );
 
