@@ -99,7 +99,7 @@ app.get("/.well-known/ai", (c) => {
     service: {
       name: "OpenClaw Suite",
       description:
-        "OpenClaw Integrity Suite. Three tools: FinOps (verified cloud pricing), API-Bridge (live OpenAPI spec parsing), Guardrail (IaC security scanning). One API key, tiered billing.",
+        "OpenClaw Integrity Suite. Four tools: FinOps (verified cloud pricing), API-Bridge (live OpenAPI spec parsing), Guardrail (IaC security scanning), Fortress (zero-trust live state verification). One API key, tiered billing.",
       category: ["finance", "developer"],
       language: ["en"],
     },
@@ -136,6 +136,18 @@ app.get("/.well-known/ai", (c) => {
           format: "string, required -- HCL|YAML|JSON",
         },
         returns: "result {content[] {type, text}, isError?} -- audit report with findings and remediation",
+      },
+      {
+        id: "verify_live_state",
+        description: "Zero-trust live state verification. Fetches a URL with optional cache-busting, reports cache vs origin status, and validates DOM signatures.",
+        endpoint: "https://openclaw-fortress.marywomack.workers.dev/mcp",
+        method: "POST",
+        params: {
+          target_url: "string, required -- URL to verify",
+          expected_dom_signature: "string, optional -- DOM assertion to check",
+          bypass_cache: "boolean, optional, default false -- force origin hit",
+        },
+        returns: "result {content[] {type, text}, isError?} -- verification report with cache verdict, headers, and DOM check",
       },
     ],
     auth: {

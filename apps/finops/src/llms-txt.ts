@@ -5,7 +5,7 @@
 
 export const LLMS_TXT = `# OpenClaw Integrity Suite
 
-> Three tools. One API key. Verified cloud pricing. Grounded API specs. Infrastructure security.
+> Four tools. One API key. Verified cloud pricing. Grounded API specs. Infrastructure security. Live state verification.
 
 The OpenClaw Integrity Suite prevents AI agents from hallucinating cloud costs, guessing API schemas, and deploying insecure infrastructure. All tools share a single authentication system and billing tier.
 
@@ -76,6 +76,27 @@ Ghost cost rules: idle NAT gateways ($32+/mo), unattached Elastic IPs ($3.60/mo)
 When to use: Before every 'terraform apply', 'cdk deploy', or infrastructure deployment. If findings include CRITICAL severity, the deployment should be blocked until remediated.
 
 Non-ENTERPRISE users receive an isError response with an upgrade CTA. Surface the message to the user as-is.
+
+---
+
+## Tool 4: Fortress — Zero-Trust Live State Verification
+
+Endpoint: POST https://openclaw-fortress.marywomack.workers.dev/mcp
+Tool: verify_live_state
+Access: ENTERPRISE only
+
+Fetch a URL and return the actual HTTP response with cache analysis and DOM signature validation. Proves what end users actually see, bypassing edge caches when needed.
+
+Parameters:
+- target_url: string (URL to verify, HTTP or HTTPS)
+- expected_dom_signature: string, optional (DOM assertion — e.g., "exactly one <header id='main-nav'>", "contains <div class='app-root'>", "no <iframe>", or a literal string search)
+- bypass_cache: boolean, default false (if true, appends cache-busting param and sends no-cache headers)
+
+Returns: Verification report with cache verdict (ORIGIN / EDGE_CACHE / INDETERMINATE), cache-related headers, DOM signature pass/fail, response headers, and body preview.
+
+When to use: Before making deployment decisions, verifying DNS propagation, checking if a hotfix is live, confirming a page matches expectations, or detecting CDN cache-masking where the edge serves stale content.
+
+Non-ENTERPRISE users receive an isError response with an upgrade CTA.
 
 ---
 
