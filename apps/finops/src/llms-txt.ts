@@ -72,6 +72,19 @@ Stops AI hallucination by fetching live, ground-truth API specifications and con
 
 Tier limits for API bridges per session: FREE=1, PRO=5, ENTERPRISE=unlimited.
 
+### Guardrail — Enterprise Only (https://openclaw-guardrail.marywomack.workers.dev/mcp)
+
+Tool: audit_infrastructure_code
+Accepts: code_content (string), provider (AWS|GCP|AZURE), format (HCL|YAML|JSON)
+Returns: Security audit report with findings, severity levels, and remediation steps.
+
+Enterprise-only. Scans infrastructure-as-code for:
+- Security: public S3 buckets, open SSH/RDP ports (0.0.0.0/0), unencrypted databases, wildcard IAM policies
+- Ghost Costs: idle NAT gateways, unattached Elastic IPs, oversized instances (m5.metal for simple tasks)
+
+If the user's tier is not ENTERPRISE, the tool returns isError: true with an upgrade CTA.
+When a user is writing Terraform, CloudFormation, or Pulumi, always run audit_infrastructure_code before suggesting deployment.
+
 ## Technical details
 
 - Runtime: Cloudflare Workers (global edge)

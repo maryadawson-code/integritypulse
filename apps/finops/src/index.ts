@@ -114,6 +114,18 @@ app.get("/.well-known/ai", (c) => {
         },
         returns: "result {content[] {type, text}} -- Markdown table of endpoints with parameters, schemas, and operation IDs",
       },
+      {
+        id: "audit_infrastructure_code",
+        description: "Enterprise security scanner. Audits Terraform/CloudFormation/Pulumi for vulnerabilities (public buckets, open ports, wildcard IAM) and ghost costs (idle NAT gateways, oversized instances).",
+        endpoint: "https://openclaw-guardrail.marywomack.workers.dev/mcp",
+        method: "POST",
+        params: {
+          code_content: "string, required -- infrastructure code to audit",
+          provider: "string, required -- AWS|GCP|AZURE",
+          format: "string, required -- HCL|YAML|JSON",
+        },
+        returns: "result {content[] {type, text}, isError?} -- audit report with findings and remediation",
+      },
     ],
     auth: {
       type: "apikey",
