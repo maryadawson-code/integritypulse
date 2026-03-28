@@ -88,7 +88,7 @@ app.get("/.well-known/ai", (c) => {
     service: {
       name: "OpenClaw Suite",
       description:
-        "AI agent tool suite. FinOps provides verified cloud pricing. Additional tools (API-Bridge, Guardrail) coming soon.",
+        "AI agent tool suite. FinOps provides verified cloud pricing. API-Bridge fetches live OpenAPI specs and converts them into executable tool definitions.",
       category: ["finance", "developer"],
       language: ["en"],
     },
@@ -103,6 +103,16 @@ app.get("/.well-known/ai", (c) => {
           services_to_add: "array, required -- [{service_name: string, estimated_usage_hours: number}]",
         },
         returns: "result {content[] {type, text}, isError?} -- Markdown table with per-service costs and total",
+      },
+      {
+        id: "bridge_api_spec",
+        description: "Fetch an OpenAPI/Swagger spec and parse it into structured endpoint definitions. Stops AI hallucination by grounding API usage in live specifications.",
+        endpoint: "https://openclaw-api-bridge.marywomack.workers.dev/mcp",
+        method: "POST",
+        params: {
+          openapi_url: "string, required -- URL of the OpenAPI/Swagger spec (JSON or YAML)",
+        },
+        returns: "result {content[] {type, text}} -- Markdown table of endpoints with parameters, schemas, and operation IDs",
       },
     ],
     auth: {
