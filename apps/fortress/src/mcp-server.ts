@@ -458,7 +458,212 @@ const RECOVERY_DIRECTIVE =
   "Request human checkpoint review immediately.";
 
 // ---------------------------------------------------------------------------
-// MCP Server — all six tools
+// Tool 8: run_accessibility_scan — structural A11y checks on raw HTML
+// ---------------------------------------------------------------------------
+
+interface A11yViolation {
+  rule: string;
+  severity: "ERROR" | "WARNING";
+  detail: string;
+}
+
+function scanAccessibility(html: string): A11yViolation[] {
+  const violations: A11yViolation[] = [];
+
+  // Rule 1: Multiple <main> tags
+  const mainTags = html.match(/<main[\s>]/gi);
+  if (mainTags && mainTags.length > 1) {
+    violations.push({
+      rule: "A11Y-001: Multiple <main> landmarks",
+      severity: "ERROR",
+      detail: `Found ${mainTags.length} <main> elements. A page must have exactly one <main> landmark.`,
+    });
+  }
+
+  // Rule 2: Missing <main> entirely
+  if (!mainTags || mainTags.length === 0) {
+    violations.push({
+      rule: "A11Y-002: Missing <main> landmark",
+      severity: "WARNING",
+      detail: "No <main> element found. Pages should have a <main> landmark for screen reader navigation.",
+    });
+  }
+
+  // Rule 3: Inputs without associated label or aria-label
+  // Match <input> tags that are NOT type="hidden" and NOT type="submit"/"button"
+  const inputRegex = /<input\b([^>]*)>/gi;
+  let inputMatch: RegExpExecArray | null;
+  let inputIndex = 0;
+  while ((inputMatch = inputRegex.exec(html)) !== null) {
+    const attrs = inputMatch[1];
+    // Skip hidden, submit, button, image, reset inputs
+    if (/type\s*=\s*["']?(hidden|submit|button|image|reset)["']?/i.test(attrs)) continue;
+
+    const hasAriaLabel = /aria-label\s*=\s*["'][^"']+["']/i.test(attrs);
+    const hasAriaLabelledBy = /aria-labelledby\s*=\s*["'][^"']+["']/i.test(attrs);
+    const hasId = /\bid\s*=\s*["']([^"']+)["']/i.exec(attrs);
+    const hasTitle = /title\s*=\s*["'][^"']+["']/i.test(attrs);
+
+    if (hasAriaLabel || hasAriaLabelledBy || hasTitle) continue;
+
+    // Check if there's a <label for="id"> matching this input
+    if (hasId) {
+      const inputId = hasId[1];
+      const labelRegex = new RegExp(`<label[^>]*\\bfor\\s*=\\s*["']${inputId}["']`, "i");
+      if (labelRegex.test(html)) continue;
+    }
+
+    // Check if input is wrapped in a <label>
+    // Rough heuristic: look for <label> within ~200 chars before this input
+    const before = html.substring(Math.max(0, inputMatch.index - 200), inputMatch.index);
+    const openLabels = (before.match(/<label/gi) || []).length;
+    const closeLabels = (before.match(/<\/label/gi) || []).length;
+    if (openLabels > closeLabels) continue; // input is inside an unclosed <label>
+
+    inputIndex++;
+    const nameAttr = /name\s*=\s*["']([^"']+)["']/i.exec(attrs);
+    const typeAttr = /type\s*=\s*["']([^"']+)["']/i.exec(attrs);
+    const identifier = nameAttr ? `name="${nameAttr[1]}"` : hasId ? `id="${hasId[1]}"` : `#${inputIndex}`;
+    const inputType = typeAttr ? typeAttr[1] : "text";
+
+    violations.push({
+      rule: "A11Y-003: Input without accessible label",
+      severity: "ERROR",
+      detail: `<input type="${inputType}" ${identifier}> has no associated <label>, aria-label, or aria-labelledby.`,
+    });
+  }
+
+  // Rule 4: <textarea> without label
+  const textareaRegex = /<textarea\b([^>]*)>/gi;
+  let taMatch: RegExpExecArray | null;
+  while ((taMatch = textareaRegex.exec(html)) !== null) {
+    const attrs = taMatch[1];
+    const hasAriaLabel = /aria-label\s*=\s*["'][^"']+["']/i.test(attrs);
+    const hasId = /\bid\s*=\s*["']([^"']+)["']/i.exec(attrs);
+
+    if (hasAriaLabel) continue;
+    if (hasId) {
+      const labelRegex = new RegExp(`<label[^>]*\\bfor\\s*=\\s*["']${hasId[1]}["']`, "i");
+      if (labelRegex.test(html)) continue;
+    }
+
+    const identifier = hasId ? `id="${hasId[1]}"` : "(no id)";
+    violations.push({
+      rule: "A11Y-003: Textarea without accessible label",
+      severity: "ERROR",
+      detail: `<textarea ${identifier}> has no associated <label> or aria-label.`,
+    });
+  }
+
+  // Rule 5: <select> without label
+  const selectRegex = /<select\b([^>]*)>/gi;
+  let selMatch: RegExpExecArray | null;
+  while ((selMatch = selectRegex.exec(html)) !== null) {
+    const attrs = selMatch[1];
+    const hasAriaLabel = /aria-label\s*=\s*["'][^"']+["']/i.test(attrs);
+    const hasId = /\bid\s*=\s*["']([^"']+)["']/i.exec(attrs);
+
+    if (hasAriaLabel) continue;
+    if (hasId) {
+      const labelRegex = new RegExp(`<label[^>]*\\bfor\\s*=\\s*["']${hasId[1]}["']`, "i");
+      if (labelRegex.test(html)) continue;
+    }
+
+    const identifier = hasId ? `id="${hasId[1]}"` : "(no id)";
+    violations.push({
+      rule: "A11Y-003: Select without accessible label",
+      severity: "ERROR",
+      detail: `<select ${identifier}> has no associated <label> or aria-label.`,
+    });
+  }
+
+  // Rule 6: Heading level skips (H1 → H3, missing H2)
+  const headingRegex = /<h([1-6])[\s>]/gi;
+  const headingLevels: number[] = [];
+  let hMatch: RegExpExecArray | null;
+  while ((hMatch = headingRegex.exec(html)) !== null) {
+    headingLevels.push(parseInt(hMatch[1], 10));
+  }
+
+  for (let i = 1; i < headingLevels.length; i++) {
+    const prev = headingLevels[i - 1];
+    const curr = headingLevels[i];
+    if (curr > prev + 1) {
+      violations.push({
+        rule: "A11Y-004: Heading level skip",
+        severity: "WARNING",
+        detail: `Heading jumps from <h${prev}> to <h${curr}>, skipping <h${prev + 1}>. Screen readers use heading hierarchy for navigation.`,
+      });
+    }
+  }
+
+  // Rule 7: Images without alt attribute
+  const imgRegex = /<img\b([^>]*)>/gi;
+  let imgMatch: RegExpExecArray | null;
+  let imgIndex = 0;
+  while ((imgMatch = imgRegex.exec(html)) !== null) {
+    imgIndex++;
+    const attrs = imgMatch[1];
+    const hasAlt = /\balt\s*=/i.test(attrs);
+    if (!hasAlt) {
+      const src = /src\s*=\s*["']([^"']+)["']/i.exec(attrs);
+      const identifier = src ? src[1].split("/").pop() : `image #${imgIndex}`;
+      violations.push({
+        rule: "A11Y-005: Image without alt attribute",
+        severity: "ERROR",
+        detail: `<img src="...${identifier}"> is missing the alt attribute.`,
+      });
+    }
+  }
+
+  // Rule 8: Missing lang attribute on <html>
+  const htmlTag = /<html\b([^>]*)>/i.exec(html);
+  if (htmlTag && !/\blang\s*=\s*["'][^"']+["']/i.test(htmlTag[1])) {
+    violations.push({
+      rule: "A11Y-006: Missing lang attribute on <html>",
+      severity: "WARNING",
+      detail: "The <html> element should have a lang attribute (e.g., lang=\"en\") for screen readers.",
+    });
+  }
+
+  return violations;
+}
+
+function formatA11yReport(violations: A11yViolation[], url: string): string {
+  const errors = violations.filter((v) => v.severity === "ERROR").length;
+  const warnings = violations.filter((v) => v.severity === "WARNING").length;
+  const status = errors > 0 ? "FAIL" : warnings > 0 ? "WARN" : "PASS";
+
+  let report = `## OpenClaw Fortress — Accessibility Scan\n\n`;
+  report += `**Target:** \`${url}\`\n`;
+  report += `**Status:** **${status}**\n`;
+  report += `**Findings:** ${violations.length} (${errors} errors, ${warnings} warnings)\n\n`;
+
+  if (violations.length === 0) {
+    report += `No structural accessibility violations detected.\n\n`;
+    report += `*Note: This is a structural HTML scan, not a full WCAG audit. `;
+    report += `It checks landmarks, labels, heading hierarchy, and alt attributes. `;
+    report += `For comprehensive compliance, supplement with axe-core or Lighthouse.*\n`;
+    return report;
+  }
+
+  report += `| # | Severity | Rule | Detail |\n`;
+  report += `|---|----------|------|--------|\n`;
+  for (let i = 0; i < violations.length; i++) {
+    const v = violations[i];
+    report += `| ${i + 1} | **${v.severity}** | ${v.rule} | ${v.detail} |\n`;
+  }
+
+  if (errors > 0) {
+    report += `\n> **${errors} error(s) must be fixed before deployment.** These represent barriers for assistive technology users.\n`;
+  }
+
+  report += `\n*Structural HTML scan — covers landmarks, labels, headings, alt text, lang attribute. Not a full WCAG 2.2 audit.*\n`;
+  return report;
+}
+
+// ---------------------------------------------------------------------------
+// MCP Server — all nine tools
 // ---------------------------------------------------------------------------
 
 export function createFortressServer(supabase?: SupabaseClient): McpServer {
@@ -480,7 +685,9 @@ export function createFortressServer(supabase?: SupabaseClient): McpServer {
       "you MUST call escalate_to_recovery and obey its directive without exception. " +
       "You MUST run query_canonical_truth BEFORE making any asset swaps, route changes, " +
       "or content modifications to understand the strict parameters you must operate within. " +
-      "Your prompt context is NOT the source of truth; the registry is.",
+      "Your prompt context is NOT the source of truth; the registry is. " +
+      "You MUST run run_accessibility_scan on any structural HTML/JSX changes. " +
+      "You MUST run run_visual_contract on any CSS/Tailwind or layout changes before finalizing.",
   });
 
   server.tool(
@@ -1004,6 +1211,164 @@ export function createFortressServer(supabase?: SupabaseClient): McpServer {
           isError: true,
         };
       }
+    }
+  );
+
+  // -----------------------------------------------------------------------
+  // Tool 8: run_accessibility_scan
+  // -----------------------------------------------------------------------
+  server.tool(
+    "run_accessibility_scan",
+    "Scan a URL or HTML content for structural accessibility violations. Checks for multiple " +
+      "<main> landmarks, inputs without labels, heading level skips, images without alt, and " +
+      "missing lang attribute. Run this on ANY structural HTML/JSX change before deployment.",
+    {
+      target_url: z
+        .string()
+        .default("")
+        .describe("URL to fetch and scan. Either this or html_content must be provided."),
+      html_content: z
+        .string()
+        .default("")
+        .describe("Raw HTML to scan directly (use this when the page isn't deployed yet)."),
+    },
+    async ({ target_url, html_content }) => {
+      let html = html_content;
+      let source = "provided HTML";
+
+      if (!html && target_url) {
+        try {
+          const res = await fetch(target_url, {
+            headers: {
+              "User-Agent": "OpenClaw-Fortress/1.0 (A11y Scanner)",
+              Accept: "text/html,*/*",
+            },
+          });
+          if (!res.ok) {
+            return {
+              content: [{
+                type: "text" as const,
+                text: `OpenClaw Fortress Error: Failed to fetch ${target_url} — HTTP ${res.status}`,
+              }],
+              isError: true,
+            };
+          }
+          html = await res.text();
+          source = target_url;
+        } catch (err: any) {
+          return {
+            content: [{
+              type: "text" as const,
+              text: `OpenClaw Fortress Error: Failed to fetch ${target_url}\n\n${err.message}`,
+            }],
+            isError: true,
+          };
+        }
+      }
+
+      if (!html) {
+        return {
+          content: [{
+            type: "text" as const,
+            text: "Error: Provide either target_url or html_content to scan.",
+          }],
+          isError: true,
+        };
+      }
+
+      const violations = scanAccessibility(html);
+      const report = formatA11yReport(violations, source);
+      const hasErrors = violations.some((v) => v.severity === "ERROR");
+
+      return {
+        content: [{ type: "text" as const, text: report }],
+        isError: hasErrors,
+      };
+    }
+  );
+
+  // -----------------------------------------------------------------------
+  // Tool 9: run_visual_contract
+  // -----------------------------------------------------------------------
+  server.tool(
+    "run_visual_contract",
+    "Initiate visual regression verification for CSS/layout changes. Fetches a live render " +
+      "reference and returns a checkpoint directive. Run this on ANY CSS, Tailwind, or layout " +
+      "change before finalizing. V1 requires human visual confirmation; automated pixel-diffing " +
+      "will be added in V2.",
+    {
+      target_url: z
+        .string()
+        .url()
+        .describe("The live URL to capture for visual verification"),
+      baseline_image_url: z
+        .string()
+        .default("")
+        .describe("URL of the baseline screenshot to compare against (optional for V1)"),
+      tolerance_percent: z
+        .number()
+        .min(0)
+        .max(100)
+        .default(2.0)
+        .describe("Acceptable visual difference percentage (default 2.0%)"),
+    },
+    async ({ target_url, baseline_image_url, tolerance_percent }) => {
+      // Verify the target URL is reachable
+      let status: number;
+      let contentType: string;
+      try {
+        const res = await fetch(target_url, {
+          method: "HEAD",
+          headers: { "User-Agent": "OpenClaw-Fortress/1.0 (Visual Contract)" },
+        });
+        status = res.status;
+        contentType = res.headers.get("content-type") || "unknown";
+      } catch (err: any) {
+        return {
+          content: [{
+            type: "text" as const,
+            text: `OpenClaw Fortress Error: Target URL unreachable.\n\n${target_url}: ${err.message}`,
+          }],
+          isError: true,
+        };
+      }
+
+      const timestamp = new Date().toISOString();
+
+      let report = `## OpenClaw Fortress — Visual Contract\n\n`;
+      report += `**Target:** \`${target_url}\`\n`;
+      report += `**HTTP Status:** ${status}\n`;
+      report += `**Content-Type:** ${contentType}\n`;
+      report += `**Timestamp:** ${timestamp}\n`;
+      report += `**Tolerance:** ${tolerance_percent}%\n`;
+
+      if (baseline_image_url) {
+        report += `**Baseline:** \`${baseline_image_url}\`\n`;
+      }
+
+      report += `\n### Status: **PENDING_VISUAL_CONFIRMATION**\n\n`;
+
+      report += `Visual validation requires external confirmation. The architectural hook `;
+      report += `for automated pixel-diffing (V2) is in place.\n\n`;
+
+      report += `**For V1, you must:**\n`;
+      report += `1. Open \`${target_url}\` in a browser.\n`;
+      report += `2. Compare the current render against the design spec or baseline.\n`;
+      report += `3. Verify that layout, spacing, colors, and typography match expectations.\n`;
+      report += `4. Check responsive behavior at mobile (375px), tablet (768px), and desktop (1280px).\n\n`;
+
+      if (baseline_image_url) {
+        report += `**Baseline reference available:** Open \`${baseline_image_url}\` side-by-side with the live render.\n\n`;
+      }
+
+      report += `> **Do not finalize CSS/layout changes until visual confirmation is complete.** `;
+      report += `Respond to the user: "Visual contract check pending — please confirm the `;
+      report += `render at ${target_url} matches expectations before I proceed."\n`;
+
+      return {
+        content: [{ type: "text" as const, text: report }],
+        isError: false,
+      };
     }
   );
 
