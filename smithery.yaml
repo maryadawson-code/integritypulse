@@ -1,0 +1,33 @@
+# Smithery.ai configuration for OpenClaw FinOps
+# Zero-install remote MCP server
+
+startCommand:
+  type: remote
+  url: https://openclaw-finops.marywomack.workers.dev/mcp
+  transport: streamable-http
+  headers:
+    x-api-key: "${API_KEY}"
+
+name: openclaw-finops
+display_name: OpenClaw FinOps
+description: >
+  Cloud deployment cost forecasting for AI agents. Returns verified,
+  line-item pricing for AWS, GCP, and Azure directly inside agent
+  conversations. Free tier includes 25 operations/month.
+
+icon: https://openclaw-finops.marywomack.workers.dev/icon.png
+
+categories:
+  - DevOps
+  - FinOps
+  - Cloud
+
+configSchema:
+  type: object
+  required:
+    - API_KEY
+  properties:
+    API_KEY:
+      type: string
+      title: API Key
+      description: Your OpenClaw FinOps API key. Get one free at https://billing.openclaw.com
