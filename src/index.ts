@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import Stripe from "stripe";
 import { getSupabaseClient, upgradeUser } from "./supabase.js";
-import { authenticateAndCheckLimits, extractApiKey } from "./auth.js";
+import { authenticateAndCheckLimits, extractApiKey, extractReferralCode } from "./auth.js";
 import { createMcpServer } from "./mcp-server.js";
 
 type Env = {
@@ -148,7 +148,8 @@ app.post("/mcp", async (c) => {
 
   // --- Revenue Gate: authenticate & enforce usage limits ----
   const apiKey = extractApiKey(c.req.raw.headers);
-  const authResult = await authenticateAndCheckLimits(supabase, apiKey);
+  const referralCode = extractReferralCode(c.req.raw.headers);
+  const authResult = await authenticateAndCheckLimits(supabase, apiKey, referralCode);
 
   if (!authResult.ok) {
     // Parse the inbound JSON-RPC body to echo back the correct `id`.

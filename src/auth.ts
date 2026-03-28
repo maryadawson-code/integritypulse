@@ -1,10 +1,24 @@
 import { SupabaseClient } from "@supabase/supabase-js";
-import { getUserByApiKey, incrementUsage, UserRecord } from "./supabase.js";
+import {
+  getUserByApiKey,
+  getUserByReferralCode,
+  linkReferral,
+  incrementUsage,
+  UserRecord,
+} from "./supabase.js";
 
-const FREE_TIER_LIMIT = 25;
+const DEFAULT_FREE_LIMIT = 25;
 
-const EXHAUSTED_MESSAGE =
-  "OpenClaw FinOps Alert: Your free monthly tier (25/25 operations) has been exhausted. To generate this architectural cost forecast, please upgrade to the Pro tier here: https://billing.openclaw.com/upgrade. Once upgraded, ask me to retry.";
+function buildExhaustedMessage(user: UserRecord): string {
+  const limit = user.monthly_limit ?? DEFAULT_FREE_LIMIT;
+  return (
+    `OpenClaw FinOps Alert: Your free monthly tier (${limit}/${limit} operations) has been exhausted. ` +
+    `To generate this architectural cost forecast, please upgrade to the Pro tier here: https://billing.openclaw.com/upgrade. ` +
+    `Once upgraded, ask me to retry.\n\n` +
+    `Need more free calls? Share your referral code "${user.referral_code}" — ` +
+    `when a new user includes it in their x-referral-code header, you both get +5 operations.`
+  );
+}
 
 export type AuthResult =
   | { ok: true; user: UserRecord }
@@ -26,12 +40,24 @@ export function extractApiKey(headers: Headers): string | undefined {
   return undefined;
 }
 
+/**
+ * Extract the referral code from the x-referral-code header.
+ */
+export function extractReferralCode(headers: Headers): string | undefined {
+  return headers.get("x-referral-code") ?? undefined;
+}
+
 export async function authenticateAndCheckLimits(
   supabase: SupabaseClient,
-  apiKey: string | undefined
+  apiKey: string | undefined,
+  referralCode?: string
 ): Promise<AuthResult> {
   if (!apiKey) {
-    return { ok: false, reason: "missing_key", message: "Missing API key. Provide an x-api-key or Authorization: Bearer header." };
+    return {
+      ok: false,
+      reason: "missing_key",
+      message: "Missing API key. Provide an x-api-key or Authorization: Bearer header.",
+    };
   }
 
   const user = await getUserByApiKey(supabase, apiKey);
@@ -39,8 +65,26 @@ export async function authenticateAndCheckLimits(
     return { ok: false, reason: "invalid_key", message: "Invalid API key." };
   }
 
-  if (user.tier === "FREE" && user.monthly_usage_count >= FREE_TIER_LIMIT) {
-    return { ok: false, reason: "rate_limited", message: EXHAUSTED_MESSAGE };
+  // --- Referral processing ---
+  // If the user hasn't been referred yet and provides a valid referral code,
+  // link them and grant +5 to both parties.
+  if (referralCode && !user.referred_by) {
+    const referrer = await getUserByReferralCode(supabase, referralCode);
+    if (referrer && referrer.user_id !== user.user_id) {
+      await linkReferral(supabase, user.user_id, referrer.user_id);
+      // Refresh the user's limit in memory
+      user.monthly_limit += 5;
+    }
+  }
+
+  // --- Rate limit check ---
+  const limit = user.monthly_limit ?? DEFAULT_FREE_LIMIT;
+  if (user.tier === "FREE" && user.monthly_usage_count >= limit) {
+    return {
+      ok: false,
+      reason: "rate_limited",
+      message: buildExhaustedMessage(user),
+    };
   }
 
   await incrementUsage(supabase, user.user_id);

@@ -6,6 +6,9 @@ export interface UserRecord {
   stripe_customer_id: string | null;
   tier: "FREE" | "PRO";
   monthly_usage_count: number;
+  monthly_limit: number;
+  referral_code: string;
+  referred_by: string | null;
 }
 
 export function getSupabaseClient(url: string, key: string): SupabaseClient {
@@ -24,6 +27,47 @@ export async function getUserByApiKey(
 
   if (error || !data) return null;
   return data as UserRecord;
+}
+
+export async function getUserByReferralCode(
+  supabase: SupabaseClient,
+  referralCode: string
+): Promise<UserRecord | null> {
+  const { data, error } = await supabase
+    .from("users")
+    .select("*")
+    .eq("referral_code", referralCode)
+    .single();
+
+  if (error || !data) return null;
+  return data as UserRecord;
+}
+
+export async function linkReferral(
+  supabase: SupabaseClient,
+  newUserId: string,
+  referrerId: string
+): Promise<void> {
+  // Link the new user to the referrer
+  await supabase
+    .from("users")
+    .update({ referred_by: referrerId })
+    .eq("user_id", newUserId);
+
+  // Bonus: +5 monthly_limit for BOTH users
+  for (const uid of [newUserId, referrerId]) {
+    const { data } = await supabase
+      .from("users")
+      .select("monthly_limit")
+      .eq("user_id", uid)
+      .single();
+
+    const current = data?.monthly_limit ?? 25;
+    await supabase
+      .from("users")
+      .update({ monthly_limit: current + 5 })
+      .eq("user_id", uid);
+  }
 }
 
 export async function incrementUsage(
