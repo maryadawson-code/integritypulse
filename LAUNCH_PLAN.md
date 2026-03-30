@@ -43,7 +43,7 @@ Update `git clone https://github.com/yourusername/openclaw-finops.git` to use th
 Submit to every MCP directory. These are the app stores for AI tools — this is where developers browse for MCP servers.
 
 | Registry | Action | Config File Ready? |
-|----------|--------|--------------------|
+|----------|--------|-----------|
 | **Smithery.ai** | Submit at https://smithery.ai/submit or `npx @smithery/cli publish openclaw-finops` | Yes — `smithery.yaml` |
 | **Glama.ai** | Submit at https://glama.ai/mcp/servers/submit with repo URL | Yes — `mcp-server.json` |
 | **PulseMCP** | Submit server URL at https://pulsemcp.com/submit | Yes — `/.well-known/mcp` |

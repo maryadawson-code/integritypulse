@@ -1,5 +1,4 @@
 # Smithery.ai configuration for OpenClaw Integrity Suite
-# Zero-install remote MCP servers
 
 startCommand:
   type: remote
@@ -13,16 +12,7 @@ display_name: "OpenClaw Integrity Suite — FinOps + Security + API Verification
 description: >
   Stop AI agents from hallucinating cloud costs, fabricating API endpoints, and
   generating insecure Terraform. Four MCP servers solving the top four problems
-  hitting vibe coders:
-
-  1. FinOps — Verified pricing for AWS, GCP, Azure (LLMs say RDS costs $15/mo, real: $204.40)
-  2. API-Bridge — Live OpenAPI specs, not hallucinated endpoints
-  3. Guardrail — Scans IaC for public S3, open SSH, ghost costs before terraform apply
-  4. Fortress — Zero-trust live state verification with 12 tools
-
-  Free tier: 25 ops/month. No credit card. Revenue-Gated MCP pattern.
-
-icon: https://openclaw-finops.marywomack.workers.dev/icon.png
+  hitting vibe coders. Free tier: 25 ops/month.
 
 categories:
   - DevOps
@@ -41,7 +31,6 @@ tags:
   - aws
   - gcp
   - azure
-  - revenue-gate
 
 configSchema:
   type: object
@@ -52,9 +41,3 @@ configSchema:
       type: string
       title: API Key
       description: Your OpenClaw API key. Get one free — 25 ops/month, no credit card.
-
-# Additional servers in the suite (same API key):
-# openclaw-api-bridge: https://openclaw-api-bridge.marywomack.workers.dev/mcp
-# openclaw-guardrail: https://openclaw-guardrail.marywomack.workers.dev/mcp
-# openclaw-fortress: https://openclaw-fortress.marywomack.workers.dev/mcp
-# openclaw-ambassador: https://openclaw-ambassador.marywomack.workers.dev/mcp (free, no key)

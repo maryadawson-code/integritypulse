@@ -1,16 +1,9 @@
 #!/usr/bin/env bash
 # install.sh — One-click OpenClaw FinOps installer for Claude Desktop and Cursor
 # Usage: curl -fsSL https://raw.githubusercontent.com/maryadawson-code/openclaw-finops/main/scripts/install.sh | bash
-#
-# What it does:
-# 1. Detects if Claude Desktop or Cursor is installed
-# 2. Prompts for your API key (or uses free tier placeholder)
-# 3. Adds the OpenClaw MCP server config to the right config file
-# 4. Done — next conversation has real cloud pricing
 
 set -euo pipefail
 
-# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
@@ -19,13 +12,12 @@ BOLD='\033[1m'
 NC='\033[0m'
 
 echo ""
-echo -e "${BOLD}${CYAN}╔═══════════════════════════════════════════════════════╗${NC}"
-echo -e "${BOLD}${CYAN}║       OpenClaw FinOps — One-Click Installer           ║${NC}"
-echo -e "${BOLD}${CYAN}║  Stop AI agents from hallucinating cloud costs.       ║${NC}"
-echo -e "${BOLD}${CYAN}╚═══════════════════════════════════════════════════════╝${NC}"
+echo -e "${BOLD}${CYAN}\u2554\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2557${NC}"
+echo -e "${BOLD}${CYAN}\u2551       OpenClaw FinOps \u2014 One-Click Installer           \u2551${NC}"
+echo -e "${BOLD}${CYAN}\u2551  Stop AI agents from hallucinating cloud costs.       \u2551${NC}"
+echo -e "${BOLD}${CYAN}\u255a\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255d${NC}"
 echo ""
 
-# Detect OS
 OS="unknown"
 case "$(uname -s)" in
   Darwin*) OS="mac" ;;
@@ -33,7 +25,6 @@ case "$(uname -s)" in
   MINGW*|MSYS*|CYGWIN*) OS="windows" ;;
 esac
 
-# Config file locations
 CLAUDE_CONFIG=""
 CURSOR_CONFIG=""
 
@@ -48,7 +39,6 @@ elif [ "$OS" = "windows" ]; then
   CURSOR_CONFIG="$HOME/.cursor/mcp.json"
 fi
 
-# Detect installed clients
 FOUND_CLAUDE=false
 FOUND_CURSOR=false
 
@@ -78,11 +68,9 @@ if [ "$FOUND_CLAUDE" = false ] && [ "$FOUND_CURSOR" = false ]; then
     }
   }'
   echo ""
-  echo -e "Get a free API key at: ${CYAN}https://openclaw-finops.marywomack.workers.dev${NC}"
   exit 0
 fi
 
-# Get API key
 echo -e "${BOLD}Enter your OpenClaw API key${NC} (press Enter to use free tier demo):"
 read -r API_KEY
 if [ -z "$API_KEY" ]; then
@@ -91,44 +79,14 @@ if [ -z "$API_KEY" ]; then
 fi
 echo ""
 
-# MCP server JSON block
-MCP_ENTRY='{
-      "type": "streamable-http",
-      "url": "https://openclaw-finops.marywomack.workers.dev/mcp",
-      "headers": { "x-api-key": "'"$API_KEY"'" }
-    }'
-
 install_to_config() {
   local config_file="$1"
   local client_name="$2"
   local config_dir
   config_dir="$(dirname "$config_file")"
-
-  # Create directory if needed
   mkdir -p "$config_dir"
 
   if [ -f "$config_file" ]; then
-    # Check if already installed
-    if grep -q "openclaw-finops" "$config_file" 2>/dev/null; then
-      echo -e "  ${GREEN}Already installed in ${client_name}!${NC} Updating API key..."
-      # Use python3 to update the existing config
-      python3 -c "
-import json, sys
-with open('$config_file', 'r') as f:
-    config = json.load(f)
-config.setdefault('mcpServers', {})
-config['mcpServers']['openclaw-finops'] = {
-    'type': 'streamable-http',
-    'url': 'https://openclaw-finops.marywomack.workers.dev/mcp',
-    'headers': {'x-api-key': '$API_KEY'}
-}
-with open('$config_file', 'w') as f:
-    json.dump(config, f, indent=2)
-" 2>/dev/null
-      return
-    fi
-
-    # Add to existing config
     python3 -c "
 import json
 with open('$config_file', 'r') as f:
@@ -143,7 +101,6 @@ with open('$config_file', 'w') as f:
     json.dump(config, f, indent=2)
 " 2>/dev/null
   else
-    # Create new config
     cat > "$config_file" <<JSONEOF
 {
   "mcpServers": {
@@ -156,11 +113,9 @@ with open('$config_file', 'w') as f:
 }
 JSONEOF
   fi
-
   echo -e "  ${GREEN}Installed in ${client_name}!${NC}"
 }
 
-# Install
 if [ "$FOUND_CLAUDE" = true ]; then
   echo -e "${BOLD}Installing for Claude Desktop...${NC}"
   install_to_config "$CLAUDE_CONFIG" "Claude Desktop"
@@ -180,7 +135,6 @@ echo "  2. Ask your agent: \"What would it cost to run an m5.large with Postgres
 echo "  3. Get real pricing instead of hallucinated numbers"
 echo ""
 echo -e "  ${BOLD}Free tier:${NC} 25 operations/month"
-echo -e "  ${BOLD}Upgrade:${NC}  https://openclaw-finops.marywomack.workers.dev"
 echo -e "  ${BOLD}GitHub:${NC}   https://github.com/maryadawson-code/openclaw-finops"
 echo ""
 echo -e "  ${CYAN}Your agent will never hallucinate cloud costs again.${NC}"

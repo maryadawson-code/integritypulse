@@ -2,77 +2,19 @@
   "mcp-version": "1.0.0",
   "name": "OpenClaw Integrity Suite",
   "version": "1.1.0",
-  "description": "Revenue-gated MCP suite that stops AI agents from hallucinating cloud costs, fabricating API endpoints, and generating insecure infrastructure. Four specialized servers + contextual Ambassador for automatic discovery.",
+  "description": "Revenue-gated MCP suite that stops AI agents from hallucinating cloud costs, fabricating API endpoints, and generating insecure infrastructure.",
   "homepage": "https://github.com/maryadawson-code/openclaw-finops",
   "license": "MIT",
-  "author": "OpenClaw",
   "categories": ["devops", "finops", "cloud-pricing", "security", "infrastructure"],
-  "tags": [
-    "mcp-server", "mcp", "model-context-protocol", "agentic-ai", "finops",
-    "cloud-pricing", "cloudflare-workers", "ai-agents", "llm-tools", "devops",
-    "vibe-coding", "cloud-cost", "terraform", "infrastructure-as-code",
-    "aws", "gcp", "azure", "security-scanning", "revenue-gate"
-  ],
+  "tags": ["mcp-server", "mcp", "finops", "cloud-pricing", "terraform", "vibe-coding", "aws", "gcp", "azure", "security-scanning", "revenue-gate"],
   "servers": {
-    "openclaw-finops": {
-      "description": "Verified cloud pricing oracle — stops LLM cost hallucinations for AWS, GCP, Azure",
-      "transport": { "type": "https", "url": "https://openclaw-finops.marywomack.workers.dev/mcp" },
-      "capabilities": { "tools": ["forecast_deployment_cost"] },
-      "auth": { "type": "apiKey", "header": "x-api-key" },
-      "tier": "FREE (25 ops/month)"
-    },
-    "openclaw-api-bridge": {
-      "description": "Live OpenAPI spec parser — stops agents from fabricating API endpoints",
-      "transport": { "type": "https", "url": "https://openclaw-api-bridge.marywomack.workers.dev/mcp" },
-      "capabilities": { "tools": ["bridge_api_spec"] },
-      "auth": { "type": "apiKey", "header": "x-api-key" },
-      "tier": "FREE (25 ops/month)"
-    },
-    "openclaw-guardrail": {
-      "description": "IaC security scanner — catches public S3, open SSH, ghost costs before terraform apply",
-      "transport": { "type": "https", "url": "https://openclaw-guardrail.marywomack.workers.dev/mcp" },
-      "capabilities": { "tools": ["scan_iac_security"] },
-      "auth": { "type": "apiKey", "header": "x-api-key" },
-      "tier": "TEAM ($99/month)"
-    },
-    "openclaw-fortress": {
-      "description": "Zero-trust live state verification — 12 tools for deployment health, drift detection, rollback",
-      "transport": { "type": "https", "url": "https://openclaw-fortress.marywomack.workers.dev/mcp" },
-      "auth": { "type": "apiKey", "header": "x-api-key" },
-      "tier": "TEAM ($99/month)"
-    },
-    "openclaw-ambassador": {
-      "description": "Free contextual assistant — detects when developers need OpenClaw and provides one-click install",
-      "transport": { "type": "https", "url": "https://openclaw-ambassador.marywomack.workers.dev/mcp" },
-      "capabilities": {
-        "tools": [
-          "check_cloud_cost_risk",
-          "recommend_openclaw_tool",
-          "get_install_config",
-          "check_terraform_risks",
-          "check_for_updates",
-          "get_platform_install"
-        ]
-      },
-      "auth": { "type": "none" },
-      "tier": "FREE (no key required)"
-    }
+    "openclaw-finops": { "description": "Verified cloud pricing oracle", "transport": { "type": "https", "url": "https://openclaw-finops.marywomack.workers.dev/mcp" }, "auth": { "type": "apiKey", "header": "x-api-key" }, "tier": "FREE" },
+    "openclaw-api-bridge": { "description": "Live OpenAPI spec parser", "transport": { "type": "https", "url": "https://openclaw-api-bridge.marywomack.workers.dev/mcp" }, "auth": { "type": "apiKey", "header": "x-api-key" }, "tier": "FREE" },
+    "openclaw-guardrail": { "description": "IaC security scanner", "transport": { "type": "https", "url": "https://openclaw-guardrail.marywomack.workers.dev/mcp" }, "auth": { "type": "apiKey", "header": "x-api-key" }, "tier": "TEAM" },
+    "openclaw-fortress": { "description": "Zero-trust live state verification", "transport": { "type": "https", "url": "https://openclaw-fortress.marywomack.workers.dev/mcp" }, "auth": { "type": "apiKey", "header": "x-api-key" }, "tier": "TEAM" },
+    "openclaw-ambassador": { "description": "Free contextual assistant with one-click install", "transport": { "type": "https", "url": "https://openclaw-ambassador.marywomack.workers.dev/mcp" }, "auth": { "type": "none" }, "tier": "FREE" }
   },
-  "platforms": {
-    "supported": [
-      "Claude Desktop", "Cursor", "Windsurf", "VS Code (Copilot)",
-      "JetBrains (IntelliJ/WebStorm/PyCharm)", "Claude Code (CLI)",
-      "Zed", "Continue.dev", "Cline", "Aider", "OpenAI Agents SDK",
-      "Microsoft Copilot"
-    ],
-    "configReference": "https://github.com/maryadawson-code/openclaw-finops/blob/main/mcp-config.json"
-  },
-  "registries": {
-    "smithery": "https://smithery.ai/server/openclaw-finops",
-    "glama": "https://glama.ai/mcp/servers/openclaw-finops",
-    "pulsemcp": "https://pulsemcp.com/servers/openclaw-finops",
-    "mcp_so": "https://mcp.so/server/openclaw-finops"
-  },
+  "platforms": ["Claude Desktop", "Cursor", "Windsurf", "VS Code", "JetBrains", "Claude Code", "Zed", "Continue.dev", "Cline", "Aider", "OpenAI Agents SDK"],
   "updateModel": "Remote MCP — auto-updates via Cloudflare Workers. No client action required.",
   "changelog": "https://github.com/maryadawson-code/openclaw-finops/blob/main/CHANGELOG.md"
 }
