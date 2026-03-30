@@ -458,6 +458,150 @@ function createAmbassadorServer() {
     }
   );
 
+  // Tool 5: Check for updates across the OpenClaw suite
+  server.tool(
+    "check_for_updates",
+    "Check the current version of all OpenClaw services and report any available updates or new features. Use this to ensure users have the latest capabilities.",
+    {},
+    async () => {
+      const SUITE_VERSION = "1.1.0";
+      const LAST_UPDATED = "2026-03-30";
+
+      const services = [
+        { name: "FinOps", version: "1.0.0", endpoint: "https://openclaw-finops.marywomack.workers.dev/mcp", status: "live", tier: "FREE+" },
+        { name: "API-Bridge", version: "0.1.0", endpoint: "https://openclaw-api-bridge.marywomack.workers.dev/mcp", status: "live", tier: "FREE+" },
+        { name: "Guardrail", version: "1.0.0", endpoint: "https://openclaw-guardrail.marywomack.workers.dev/mcp", status: "live", tier: "TEAM+" },
+        { name: "Fortress", version: "1.0.0", endpoint: "https://openclaw-fortress.marywomack.workers.dev/mcp", status: "live", tier: "TEAM+" },
+        { name: "Ambassador", version: "1.1.0", endpoint: "https://openclaw-ambassador.marywomack.workers.dev/mcp", status: "live", tier: "FREE (no key)" },
+      ];
+
+      const recentChanges = [
+        "v1.1.0 (2026-03-30): Ambassador bot launched — contextual tool recommendations",
+        "v1.1.0 (2026-03-30): One-click installer for Claude Desktop, Cursor, Windsurf",
+        "v1.1.0 (2026-03-30): Expanded to 11 platform configs (VS Code, JetBrains, Zed, Continue, Cline, Aider)",
+        "v1.0.0 (2026-03-28): Initial release — FinOps, API-Bridge, Guardrail, Fortress",
+      ];
+
+      const platforms = [
+        "Claude Desktop", "Cursor", "Windsurf", "VS Code (Copilot)",
+        "JetBrains (IntelliJ/WebStorm/PyCharm)", "Claude Code (CLI)",
+        "Zed", "Continue.dev", "Cline", "Aider", "OpenAI Agents SDK",
+      ];
+
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify({
+              suiteVersion: SUITE_VERSION,
+              lastUpdated: LAST_UPDATED,
+              updateModel: "Remote MCP servers auto-update via Cloudflare Workers. No client-side action required — you always get the latest version automatically.",
+              services,
+              recentChanges,
+              supportedPlatforms: platforms,
+              installCommand: "curl -fsSL https://raw.githubusercontent.com/maryadawson-code/openclaw-finops/main/scripts/install.sh | bash",
+              changelog: "https://github.com/maryadawson-code/openclaw-finops/blob/main/CHANGELOG.md",
+              github: "https://github.com/maryadawson-code/openclaw-finops",
+            }, null, 2),
+          },
+        ],
+      };
+    }
+  );
+
+  // Tool 6: Get platform-specific install instructions
+  server.tool(
+    "get_platform_install",
+    "Get exact installation instructions for a specific AI development platform. Covers Claude Desktop, Cursor, Windsurf, VS Code, JetBrains, Claude Code, Zed, Continue.dev, Cline, and Aider.",
+    {
+      platform: z.enum([
+        "claude-desktop", "cursor", "windsurf", "vscode", "jetbrains",
+        "claude-code", "zed", "continue", "cline", "aider", "openai-agents",
+      ]).describe("The AI development platform to install on"),
+      apiKey: z.string().default("YOUR_API_KEY").describe("User's API key"),
+    },
+    async ({ platform, apiKey }) => {
+      const instructions: Record<string, { file: string; config: string; steps: string[] }> = {
+        "claude-desktop": {
+          file: "~/Library/Application Support/Claude/claude_desktop_config.json (macOS)\n%APPDATA%\\Claude\\claude_desktop_config.json (Windows)",
+          config: JSON.stringify({ mcpServers: { "openclaw-finops": { type: "streamable-http", url: "https://openclaw-finops.marywomack.workers.dev/mcp", headers: { "x-api-key": apiKey } }, "openclaw-ambassador": { type: "streamable-http", url: "https://openclaw-ambassador.marywomack.workers.dev/mcp" } } }, null, 2),
+          steps: ["Open the config file (create it if it doesn't exist)", "Paste the config below", "Restart Claude Desktop", "Ask: 'What would it cost to run an m5.large with Postgres on AWS?'"],
+        },
+        "cursor": {
+          file: ".cursor/mcp.json (project) or Cursor Settings > MCP > Add Server",
+          config: JSON.stringify({ mcpServers: { "openclaw-finops": { type: "streamable-http", url: "https://openclaw-finops.marywomack.workers.dev/mcp", headers: { "x-api-key": apiKey } }, "openclaw-ambassador": { type: "streamable-http", url: "https://openclaw-ambassador.marywomack.workers.dev/mcp" } } }, null, 2),
+          steps: ["Open Cursor Settings > MCP (or edit .cursor/mcp.json)", "Add the servers below", "Restart Cursor", "In Composer, ask about cloud costs — FinOps will respond with real pricing"],
+        },
+        "windsurf": {
+          file: "~/.codeium/windsurf/mcp_config.json",
+          config: JSON.stringify({ mcpServers: { "openclaw-finops": { type: "streamable-http", url: "https://openclaw-finops.marywomack.workers.dev/mcp", headers: { "x-api-key": apiKey } }, "openclaw-ambassador": { type: "streamable-http", url: "https://openclaw-ambassador.marywomack.workers.dev/mcp" } } }, null, 2),
+          steps: ["Open ~/.codeium/windsurf/mcp_config.json", "Add or merge the config below", "Restart Windsurf", "Cascade will now have access to verified cloud pricing"],
+        },
+        "vscode": {
+          file: ".vscode/mcp.json (workspace) or VS Code Settings > MCP",
+          config: JSON.stringify({ servers: { "openclaw-finops": { type: "http", url: "https://openclaw-finops.marywomack.workers.dev/mcp", headers: { "x-api-key": apiKey } }, "openclaw-ambassador": { type: "http", url: "https://openclaw-ambassador.marywomack.workers.dev/mcp" } } }, null, 2),
+          steps: ["In VS Code, open Settings and search for 'MCP'", "Or create .vscode/mcp.json in your project", "Add the servers below (note: VS Code uses 'servers' not 'mcpServers')", "GitHub Copilot will now be able to use OpenClaw tools"],
+        },
+        "jetbrains": {
+          file: "Settings > Tools > AI Assistant > MCP Servers",
+          config: "Add each server manually:\n\n1. Name: OpenClaw FinOps\n   URL: https://openclaw-finops.marywomack.workers.dev/mcp\n   Header: x-api-key: " + apiKey + "\n\n2. Name: OpenClaw Ambassador\n   URL: https://openclaw-ambassador.marywomack.workers.dev/mcp",
+          steps: ["Open Settings > Tools > AI Assistant > MCP Servers", "Click 'Add' for each server", "Enter the name, URL, and header as shown below", "Works in IntelliJ IDEA, WebStorm, PyCharm, GoLand, Rider, etc."],
+        },
+        "claude-code": {
+          file: "Terminal (CLI commands)",
+          config: `claude mcp add openclaw-finops --transport http https://openclaw-finops.marywomack.workers.dev/mcp --header 'x-api-key: ${apiKey}'\nclaude mcp add openclaw-ambassador --transport http https://openclaw-ambassador.marywomack.workers.dev/mcp`,
+          steps: ["Run each command below in your terminal", "Claude Code will add them to your MCP config", "Available immediately in your next session"],
+        },
+        "zed": {
+          file: "~/.config/zed/settings.json (under context_servers)",
+          config: JSON.stringify({ context_servers: { "openclaw-finops": { settings: { url: "https://openclaw-finops.marywomack.workers.dev/mcp", headers: { "x-api-key": apiKey } } } } }, null, 2),
+          steps: ["Open Zed settings (Cmd+, on macOS)", "Add the context_servers section below", "Restart Zed"],
+        },
+        "continue": {
+          file: "~/.continue/config.yaml or .continue/config.yaml",
+          config: "mcpServers:\n  - name: openclaw-finops\n    transport:\n      type: streamable-http\n      url: https://openclaw-finops.marywomack.workers.dev/mcp\n      headers:\n        x-api-key: " + apiKey,
+          steps: ["Open your Continue config file", "Add the mcpServers section below", "Restart your IDE"],
+        },
+        "cline": {
+          file: "VS Code > Cline Extension Settings > MCP Servers",
+          config: JSON.stringify({ mcpServers: { "openclaw-finops": { type: "streamable-http", url: "https://openclaw-finops.marywomack.workers.dev/mcp", headers: { "x-api-key": apiKey } } } }, null, 2),
+          steps: ["Open VS Code Settings", "Search for 'Cline MCP'", "Add the server config below", "Cline will now use verified pricing when discussing infrastructure"],
+        },
+        "aider": {
+          file: "~/.aider.conf.yml or command line",
+          config: "# In .aider.conf.yml:\nmcp-servers:\n  openclaw-finops: https://openclaw-finops.marywomack.workers.dev/mcp\n\n# Or via command line:\naider --mcp-server openclaw-finops=https://openclaw-finops.marywomack.workers.dev/mcp",
+          steps: ["Add to your .aider.conf.yml or pass as a CLI flag", "Aider will connect to OpenClaw on startup"],
+        },
+        "openai-agents": {
+          file: "Your agent code (Python/TypeScript)",
+          config: "# Python (OpenAI Agents SDK)\nfrom agents import Agent\nfrom agents.mcp import MCPServerStreamableHTTP\n\nasync with MCPServerStreamableHTTP(\n    url='https://openclaw-finops.marywomack.workers.dev/mcp',\n    headers={'x-api-key': '" + apiKey + "'}\n) as server:\n    tools = await server.list_tools()\n    agent = Agent(name='infra-agent', tools=tools)",
+          steps: ["Import the MCP server connector", "Point it at the OpenClaw endpoint", "List tools and attach to your agent", "Your agent now has verified cloud pricing"],
+        },
+      };
+
+      const inst = instructions[platform];
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: [
+              `Installation for ${platform.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}`,
+              `\nConfig file: ${inst.file}\n`,
+              `Steps:`,
+              ...inst.steps.map((s, i) => `  ${i + 1}. ${s}`),
+              `\n--- Config ---\n`,
+              inst.config,
+              `\n\nOr use the one-click installer:`,
+              `curl -fsSL https://raw.githubusercontent.com/maryadawson-code/openclaw-finops/main/scripts/install.sh | bash`,
+              `\nFree tier: 25 ops/month. No credit card.`,
+              `Updates are automatic — remote MCP servers deploy instantly via Cloudflare Workers.`,
+            ].join("\n"),
+          },
+        ],
+      };
+    }
+  );
+
   return server;
 }
 
