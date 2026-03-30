@@ -1,0 +1,50 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          body: |
+            ## OpenClaw Integrity Suite ${{ github.ref_name }}
+
+            Four MCP servers solving the top four problems hitting vibe coders:
+
+            - **FinOps** — Stops cost hallucinations with verified cloud pricing
+            - **API-Bridge** — Stops API fabrication with live OpenAPI specs
+            - **Guardrail** — Stops security blindspots in Terraform/CloudFormation
+            - **Fortress** — Stops ghost costs with zero-trust live state verification
+
+            ### Quick Start (30 seconds)
+
+            ```json
+            {
+              "mcpServers": {
+                "openclaw-finops": {
+                  "type": "streamable-http",
+                  "url": "https://openclaw-finops.marywomack.workers.dev/mcp",
+                  "headers": { "x-api-key": "YOUR_KEY" }
+                }
+              }
+            }
+            ```
+
+            **Free tier:** 25 ops/month — no credit card required.
+
+            Or one-click install:
+            ```bash
+            curl -fsSL https://raw.githubusercontent.com/maryadawson-code/openclaw-finops/main/scripts/install.sh | bash
+            ```
