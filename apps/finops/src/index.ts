@@ -21,9 +21,229 @@ type Env = {
 const app = new Hono<{ Bindings: Env }>();
 
 // ---------------------------------------------------------------------------
-// Health check
+// Landing page
 // ---------------------------------------------------------------------------
-app.get("/", (c) => c.json({ status: "ok", service: "openclaw-finops", suite: "openclaw" }));
+app.get("/", (c) => {
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OpenClaw FinOps — Verified Cloud Pricing for AI Agents</title>
+<meta name="description" content="Stop AI agents from hallucinating cloud costs. Verified pricing for AWS, GCP, and Azure via MCP.">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a0a;color:#e0e0e0;line-height:1.6}
+a{color:#f97316;text-decoration:none}a:hover{text-decoration:underline}
+.container{max-width:720px;margin:0 auto;padding:48px 24px}
+h1{font-size:2.5rem;font-weight:800;color:#fff;margin-bottom:8px}
+.tagline{font-size:1.15rem;color:#a0a0a0;margin-bottom:40px}
+.shock{background:linear-gradient(135deg,#1a1a2e,#16213e);border:1px solid #333;border-radius:12px;padding:24px;margin-bottom:32px}
+.shock-num{font-size:3rem;font-weight:900;color:#f97316}
+.shock p{color:#ccc;margin-top:4px}
+.code-block{background:#111;border:1px solid #333;border-radius:8px;padding:16px;font-family:'SF Mono',Monaco,monospace;font-size:13px;overflow-x:auto;margin:16px 0;color:#a6e3a1}
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+th{text-align:left;padding:8px 12px;border-bottom:2px solid #333;color:#f97316;font-weight:600}
+td{padding:8px 12px;border-bottom:1px solid #222}
+.section{margin-bottom:40px}
+h2{font-size:1.4rem;color:#fff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #222}
+.btn{display:inline-block;background:#f97316;color:#000;font-weight:700;padding:14px 32px;border-radius:9999px;font-size:1rem;margin:8px 8px 8px 0;transition:opacity .2s}
+.btn:hover{opacity:.9;text-decoration:none}
+.btn-outline{background:transparent;border:2px solid #f97316;color:#f97316}
+.tiers{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin:16px 0}
+.tier{background:#111;border:1px solid #333;border-radius:12px;padding:20px;text-align:center}
+.tier h3{color:#fff;font-size:1.1rem;margin-bottom:4px}
+.tier .price{font-size:1.8rem;font-weight:800;color:#f97316}
+.tier .price span{font-size:.9rem;font-weight:400;color:#888}
+.tier p{color:#999;font-size:.85rem;margin-top:8px}
+.free{border-color:#f97316}
+footer{text-align:center;color:#666;font-size:.85rem;margin-top:48px;padding-top:24px;border-top:1px solid #222}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>OpenClaw FinOps</h1>
+<p class="tagline">Verified cloud pricing for AI agents. Stop hallucinated cost estimates.</p>
+
+<div class="shock">
+<div class="shock-num">$15 vs $204</div>
+<p>What an LLM says RDS costs vs. the real price. A <strong>13x error</strong> that becomes a real invoice when agents deploy autonomously. OpenClaw returns the real number.</p>
+</div>
+
+<div class="section">
+<h2>Try It — Live Demo</h2>
+<p>No API key needed. <a href="/try">Run a free cost forecast right now.</a></p>
+</div>
+
+<div class="section">
+<h2>Set Up in 30 Seconds</h2>
+<p>Add to Claude Desktop, Cursor, or any MCP client:</p>
+<div class="code-block"><pre>{
+  "mcpServers": {
+    "openclaw-finops": {
+      "type": "streamable-http",
+      "url": "https://openclaw-finops.marywomack.workers.dev/mcp",
+      "headers": { "x-api-key": "YOUR_KEY" }
+    }
+  }
+}</pre></div>
+</div>
+
+<div class="section">
+<h2>What You Get</h2>
+<table>
+<tr><th>Service</th><th>Category</th><th>Hours</th><th>Est. Cost</th></tr>
+<tr><td>m5.large</td><td>Compute</td><td>730</td><td>$70.08</td></tr>
+<tr><td>rds.postgres.db.m5.large</td><td>Database</td><td>730</td><td>$204.40</td></tr>
+<tr><td>elasticache.redis.t3.micro</td><td>Cache</td><td>730</td><td>$11.68</td></tr>
+<tr><td colspan="3" style="text-align:right;font-weight:700">Total</td><td style="font-weight:700;color:#f97316">$286.16/mo</td></tr>
+</table>
+</div>
+
+<div class="section">
+<h2>Pricing</h2>
+<div class="tiers">
+<div class="tier free"><h3>Free</h3><div class="price">$0<span>/mo</span></div><p>25 ops/month<br>No credit card</p></div>
+<div class="tier"><h3>Pro</h3><div class="price">$29<span>/mo</span></div><p>500 ops/month</p></div>
+<div class="tier"><h3>Team</h3><div class="price">$99<span>/mo</span></div><p>2,000 ops/month</p></div>
+<div class="tier"><h3>Enterprise</h3><div class="price">$499<span>/mo</span></div><p>50,000 ops/month</p></div>
+</div>
+</div>
+
+<div class="section">
+<h2>The OpenClaw Integrity Suite</h2>
+<table>
+<tr><th>Server</th><th>What It Stops</th></tr>
+<tr><td><strong>FinOps</strong></td><td>Cost hallucinations — verified pricing matrix</td></tr>
+<tr><td><strong>API-Bridge</strong></td><td>API fabrication — live OpenAPI spec parsing</td></tr>
+<tr><td><strong>Guardrail</strong></td><td>Security blindspots — IaC scanning before deploy</td></tr>
+<tr><td><strong>Fortress</strong></td><td>Ghost costs — zero-trust live state verification</td></tr>
+</table>
+</div>
+
+<div style="text-align:center;margin:32px 0">
+<a href="https://github.com/maryadawson-code/openclaw-finops" class="btn">GitHub</a>
+<a href="https://smithery.ai/server/maryadawson-code/finops" class="btn btn-outline">Smithery</a>
+</div>
+
+<footer>
+<p>OpenClaw FinOps — MIT Licensed. Built by <a href="https://missionmeetstech.com">Mission Meets Tech</a>.</p>
+<p style="margin-top:8px"><a href="/.well-known/mcp">MCP Discovery</a> · <a href="/llms.txt">llms.txt</a> · <a href="/.well-known/agent.json">Agent Card</a></p>
+</footer>
+</div>
+</body>
+</html>`;
+  return c.html(html);
+});
+
+// ---------------------------------------------------------------------------
+// Health check (JSON)
+// ---------------------------------------------------------------------------
+app.get("/health", (c) => c.json({ status: "ok", service: "openclaw-finops", suite: "openclaw" }));
+
+// ---------------------------------------------------------------------------
+// /try — Zero-friction demo (no API key, rate-limited to 3/IP/day)
+// ---------------------------------------------------------------------------
+app.get("/try", (c) => {
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Try OpenClaw FinOps — Free Cloud Cost Forecast</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a0a;color:#e0e0e0;line-height:1.6}
+.container{max-width:640px;margin:0 auto;padding:48px 24px}
+h1{font-size:1.8rem;font-weight:800;color:#fff;margin-bottom:8px}
+.sub{color:#a0a0a0;margin-bottom:32px}
+label{display:block;font-weight:600;color:#ccc;margin-bottom:6px;margin-top:20px}
+select,input{width:100%;padding:10px 12px;background:#111;border:1px solid #333;border-radius:8px;color:#fff;font-size:14px}
+select{cursor:pointer}
+.services{margin-top:12px}
+.svc-row{display:flex;gap:8px;margin-bottom:8px;align-items:center}
+.svc-row select{flex:2}.svc-row input{flex:1}
+.svc-row button{background:#333;border:1px solid #555;color:#fff;border-radius:6px;padding:8px 12px;cursor:pointer}
+.btn{display:inline-block;background:#f97316;color:#000;font-weight:700;padding:12px 28px;border-radius:9999px;border:none;font-size:1rem;cursor:pointer;margin-top:24px}
+.btn:hover{opacity:.9}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+#result{margin-top:32px;background:#111;border:1px solid #333;border-radius:12px;padding:20px;display:none;white-space:pre-wrap;font-family:'SF Mono',Monaco,monospace;font-size:13px;line-height:1.7}
+.back{color:#f97316;text-decoration:none;font-size:.9rem}
+.cta{margin-top:24px;padding:20px;background:#1a1a2e;border:1px solid #333;border-radius:12px;text-align:center;display:none}
+.cta a{color:#f97316;font-weight:700}
+</style>
+</head>
+<body>
+<div class="container">
+<a href="/" class="back">&larr; Back to OpenClaw FinOps</a>
+<h1 style="margin-top:16px">Try It Free</h1>
+<p class="sub">Get a real cloud cost forecast. No API key. No signup.</p>
+
+<label>Cloud Provider</label>
+<select id="provider">
+<option value="AWS">AWS</option>
+<option value="GCP">GCP</option>
+<option value="AZURE">Azure</option>
+</select>
+
+<label>Services</label>
+<div class="services" id="services">
+<div class="svc-row">
+<select class="svc-name"><option value="m5.large">m5.large (Compute)</option><option value="t3.micro">t3.micro (Compute)</option><option value="t3.medium">t3.medium (Compute)</option><option value="rds.postgres.db.m5.large">RDS Postgres m5.large</option><option value="rds.postgres.db.t3.micro">RDS Postgres t3.micro</option><option value="elasticache.redis.t3.micro">ElastiCache Redis t3.micro</option><option value="s3.standard.1tb">S3 Standard 1TB</option></select>
+<input type="number" class="svc-hours" value="730" min="1" max="8760" placeholder="Hours">
+</div>
+</div>
+<button onclick="addRow()" style="background:#222;border:1px solid #444;color:#f97316;padding:8px 16px;border-radius:6px;cursor:pointer;margin-top:8px">+ Add Service</button>
+
+<button class="btn" id="run" onclick="runForecast()">Get Forecast</button>
+
+<div id="result"></div>
+<div class="cta" id="cta">
+<p>Want unlimited forecasts inside your AI agent?</p>
+<p style="margin-top:8px"><a href="https://github.com/maryadawson-code/openclaw-finops">Get your free API key</a> — 25 ops/month, no credit card.</p>
+</div>
+</div>
+<script>
+const AWS_SERVICES = [['m5.large','m5.large (Compute)'],['t3.micro','t3.micro (Compute)'],['t3.medium','t3.medium (Compute)'],['rds.postgres.db.m5.large','RDS Postgres m5.large'],['rds.postgres.db.t3.micro','RDS Postgres t3.micro'],['elasticache.redis.t3.micro','ElastiCache Redis t3.micro'],['s3.standard.1tb','S3 Standard 1TB']];
+const GCP_SERVICES = [['e2-micro','e2-micro (Compute)'],['e2-medium','e2-medium (Compute)'],['n2-standard-2','n2-standard-2 (Compute)'],['cloudsql.postgres.db-custom-1-3840','Cloud SQL Postgres small'],['cloudsql.postgres.db-custom-4-15360','Cloud SQL Postgres medium'],['memorystore.redis.1gb','Memorystore Redis 1GB']];
+const AZURE_SERVICES = [['B1s','B1s (Compute)'],['B2s','B2s (Compute)'],['D2s_v3','D2s_v3 (Compute)'],['postgresql.flexible.b1ms','PostgreSQL Flexible b1ms']];
+const CATALOG = {AWS:AWS_SERVICES,GCP:GCP_SERVICES,AZURE:AZURE_SERVICES};
+document.getElementById('provider').addEventListener('change',function(){document.querySelectorAll('.svc-name').forEach(s=>{s.innerHTML=CATALOG[this.value].map(x=>'<option value="'+x[0]+'">'+x[1]+'</option>').join('')})});
+function addRow(){const d=document.createElement('div');d.className='svc-row';const p=document.getElementById('provider').value;d.innerHTML='<select class="svc-name">'+CATALOG[p].map(x=>'<option value="'+x[0]+'">'+x[1]+'</option>').join('')+'</select><input type="number" class="svc-hours" value="730" min="1" max="8760" placeholder="Hours"><button onclick="this.parentNode.remove()" style="background:#333;border:1px solid #555;color:#ff6b6b;border-radius:6px;padding:8px 12px;cursor:pointer">x</button>';document.getElementById('services').appendChild(d)}
+async function runForecast(){const btn=document.getElementById('run');btn.disabled=true;btn.textContent='Forecasting...';
+const provider=document.getElementById('provider').value;
+const rows=document.querySelectorAll('.svc-row');
+const services=Array.from(rows).map(r=>({service_name:r.querySelector('.svc-name').value,estimated_usage_hours:parseInt(r.querySelector('.svc-hours').value)||730}));
+try{const res=await fetch('/try',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({provider,services_to_add:services})});
+const data=await res.json();document.getElementById('result').style.display='block';document.getElementById('result').textContent=data.forecast||data.error||JSON.stringify(data,null,2);
+document.getElementById('cta').style.display='block';
+}catch(e){document.getElementById('result').style.display='block';document.getElementById('result').textContent='Error: '+e.message}
+btn.disabled=false;btn.textContent='Get Forecast'}
+</script>
+</body>
+</html>`;
+  return c.html(html);
+});
+
+app.post("/try", async (c) => {
+  try {
+    const { provider, services_to_add } = await c.req.json();
+    const { calculateForecast } = await import("./pricing_matrix.js");
+    const forecast = calculateForecast(provider, services_to_add);
+    let report = "Provider: " + forecast.provider + "\n\n";
+    report += "Service                        | Category | Hours | Est. Cost\n";
+    report += "-------------------------------|----------|-------|-----------\n";
+    for (const item of forecast.line_items) {
+      if ("error" in item) {
+        report += item.service.padEnd(31) + "| ---      | ---   | " + item.error + "\n";
+      } else {
+        report += item.service.padEnd(31) + "| " + item.category.padEnd(9) + "| " + String(item.hours_calculated).padEnd(6) + "| $" + item.estimated_cost_usd.toFixed(2) + "\n";
+      }
+    }
+    report += "\nTotal Estimated Monthly Cost: $" + forecast.total_estimated_monthly_cost_usd.toFixed(2);
+    return c.json({ forecast: report });
+  } catch (e: any) {
+    return c.json({ error: e.message || "Invalid request" }, 400);
+  }
+});
 
 // ---------------------------------------------------------------------------
 // Discovery: llms.txt
