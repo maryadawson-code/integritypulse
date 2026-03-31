@@ -85,6 +85,12 @@ td{padding:5px 8px;border-bottom:1px solid #252535;color:#bac2de}
 .install-box .copy-btn{position:absolute;top:10px;right:10px;background:#333;border:1px solid #555;color:#ccc;padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer}
 .install-box .copy-btn:hover{background:#444}
 footer{text-align:center;padding:0 24px 32px;color:#555;font-size:.8rem}
+.context-banner{max-width:min(900px,calc(100vw - 48px));margin:0 auto 16px;background:#111;border:1px solid #252535;border-radius:12px;padding:20px 24px;opacity:0;transform:translateY(8px);transition:opacity .4s,transform .4s}
+.context-banner.show{opacity:1;transform:translateY(0)}
+.context-banner .ctx-problem{font-size:13px;color:#cdd6f4;margin-bottom:10px;line-height:1.5}
+.context-banner .ctx-problem strong{color:#fff}
+.context-banner .ctx-why{font-size:12px;color:#a0a0a0;margin-bottom:10px;line-height:1.5;padding-left:12px;border-left:3px solid #333}
+.context-banner .ctx-roi{font-size:13px;color:#cdd6f4;line-height:1.5;padding:10px 14px;background:#0a1a0a;border:1px solid #1a3a1a;border-radius:8px}
 </style>
 </head>
 <body>
@@ -100,6 +106,12 @@ footer{text-align:center;padding:0 24px 32px;color:#555;font-size:.8rem}
   <div class="scene-tab" onclick="switchScene(2)">Guardrail</div>
   <div class="scene-tab" onclick="switchScene(3)">Fortress</div>
   <div class="scene-tab" onclick="switchScene(4)">Revenue Gate</div>
+</div>
+
+<div class="context-banner" id="ctxBanner">
+  <div class="ctx-problem" id="ctxProblem"></div>
+  <div class="ctx-why" id="ctxWhy"></div>
+  <div class="ctx-roi" id="ctxRoi"></div>
 </div>
 
 <div class="screen">
@@ -139,47 +151,72 @@ const SCENES = [
   // Scene 0: FinOps
   {
     title: "openclaw-finops",
+    context: {
+      problem: "LLMs are wrong about cloud pricing by 5\\u201315x. When agents deploy autonomously, hallucinated estimates become real invoices.",
+      why: "One bad forecast can cost your team <strong style=\\"color:#f38ba8\\">$2,900/year</strong> in unexpected charges\\u2014per service. Multiply across 10 microservices and that\\'s a $29K budget surprise.",
+      roi: "\\ud83d\\udcb0 <strong>ROI:</strong> Catches cost errors before deployment. A single corrected RDS estimate saves <strong style=\\"color:#a6e3a1\\">$2,273/year</strong> ($204 real vs $15 hallucinated, times 12 months)."
+    },
     messages: [
       {type:'user', text:'What would it cost to run our API on AWS with an m5.large, managed Postgres, and Redis?'},
       {type:'bot', avatar:'fin', html:'<div class="tool-call"><div class="tool-label">Tool Call</div>forecast_deployment_cost<span class="badge badge-fin">openclaw-finops</span></div>'},
-      {type:'bot', avatar:'fin', html:'<div style="font-size:12px;color:#a6adc8;margin-bottom:8px">An LLM would estimate: <span class="hl">~$45/month</span>. Here\\'s the verified pricing:</div><table><tr><th>Service</th><th>Category</th><th>Hours</th><th class="cost-col">Cost</th></tr><tr class="anim-row"><td>m5.large</td><td>Compute</td><td>730</td><td class="cost-col">$70.08</td></tr><tr class="anim-row"><td>rds.postgres.db.m5.large</td><td>Database</td><td>730</td><td class="cost-col">$204.40</td></tr><tr class="anim-row"><td>elasticache.redis.t3.micro</td><td>Cache</td><td>730</td><td class="cost-col">$11.68</td></tr><tr class="anim-row total-row"><td colspan="3">Total Estimated Monthly Cost</td><td class="cost-col">$286.16</td></tr></table><div style="font-size:12px;color:#f38ba8;margin-top:4px">That\\'s <strong>6.4x more</strong> than the LLM hallucinated. This is what hits your AWS bill.</div>'},
+      {type:'bot', avatar:'fin', html:'<div style="font-size:12px;color:#a6adc8;margin-bottom:8px">An LLM would estimate: <span class="hl">~$45/month</span>. Here\\'s the verified pricing:</div><table><tr><th>Service</th><th>Category</th><th>Hours</th><th class="cost-col">Cost</th></tr><tr class="anim-row"><td>m5.large</td><td>Compute</td><td>730</td><td class="cost-col">$70.08</td></tr><tr class="anim-row"><td>rds.postgres.db.m5.large</td><td>Database</td><td>730</td><td class="cost-col">$204.40</td></tr><tr class="anim-row"><td>elasticache.redis.t3.micro</td><td>Cache</td><td>730</td><td class="cost-col">$11.68</td></tr><tr class="anim-row total-row"><td colspan="3">Total Estimated Monthly Cost</td><td class="cost-col">$286.16</td></tr></table><div style="font-size:12px;color:#f38ba8;margin-top:4px"><strong>6.4x more</strong> than the LLM hallucinated. Annualized: <strong>$2,893 over budget</strong> if you trusted the agent\\'s estimate.</div>'},
     ]
   },
   // Scene 1: API-Bridge
   {
     title: "openclaw-api-bridge",
+    context: {
+      problem: "AI agents confidently fabricate API endpoints, parameters, and authentication flows that don\\'t exist\\u2014leading to failed integrations and hours of debugging.",
+      why: "Engineering teams report <strong style=\\"color:#f38ba8\\">2\\u20134 hours wasted per hallucinated API integration</strong>. At $150/hr loaded cost, each fabricated endpoint costs $300\\u2013$600 in developer time.",
+      roi: "\\ud83d\\udcb0 <strong>ROI:</strong> Eliminates API debugging from hallucinated specs. Saves <strong style=\\"color:#a6e3a1\\">$1,200\\u2013$2,400/month</strong> for teams doing 4\\u201310 integrations monthly."
+    },
     messages: [
       {type:'user', text:'Parse the Stripe API spec and show me the endpoints for creating charges.'},
       {type:'bot', avatar:'api', html:'<div class="tool-call"><div class="tool-label">Tool Call</div>bridge_api_spec<span class="badge badge-api">openclaw-api-bridge</span></div><div style="color:#6c7086;font-size:11px;margin-top:4px">Fetching live OpenAPI spec from api.stripe.com...</div>'},
-      {type:'bot', avatar:'api', html:'<div style="font-size:12px;color:#a6adc8;margin-bottom:8px">Without API-Bridge, I would have <span class="hl">guessed endpoints that don\\'t exist</span>. Here\\'s the real spec:</div><table><tr><th>Endpoint</th><th>Method</th><th>Description</th></tr><tr class="anim-row"><td style="color:#8b5cf6;font-family:monospace;font-size:11px">/v1/charges</td><td><span class="tag" style="background:#a6e3a120;color:#a6e3a1">POST</span></td><td>Create a new charge</td></tr><tr class="anim-row"><td style="color:#8b5cf6;font-family:monospace;font-size:11px">/v1/charges/{id}</td><td><span class="tag" style="background:#06b6d420;color:#06b6d4">GET</span></td><td>Retrieve a charge</td></tr><tr class="anim-row"><td style="color:#8b5cf6;font-family:monospace;font-size:11px">/v1/charges/{id}</td><td><span class="tag" style="background:#f9e2af20;color:#f9e2af">POST</span></td><td>Update a charge</td></tr><tr class="anim-row"><td style="color:#8b5cf6;font-family:monospace;font-size:11px">/v1/charges/{id}/capture</td><td><span class="tag" style="background:#a6e3a120;color:#a6e3a1">POST</span></td><td>Capture a charge</td></tr></table><div style="font-size:12px;color:#a6adc8;margin-top:6px">4 real endpoints with full parameter schemas. Zero hallucinated routes.</div>'},
+      {type:'bot', avatar:'api', html:'<div style="font-size:12px;color:#a6adc8;margin-bottom:8px">Without API-Bridge, I would have <span class="hl">guessed endpoints that don\\'t exist</span>. Here\\'s the real spec:</div><table><tr><th>Endpoint</th><th>Method</th><th>Description</th></tr><tr class="anim-row"><td style="color:#8b5cf6;font-family:monospace;font-size:11px">/v1/charges</td><td><span class="tag" style="background:#a6e3a120;color:#a6e3a1">POST</span></td><td>Create a new charge</td></tr><tr class="anim-row"><td style="color:#8b5cf6;font-family:monospace;font-size:11px">/v1/charges/{id}</td><td><span class="tag" style="background:#06b6d420;color:#06b6d4">GET</span></td><td>Retrieve a charge</td></tr><tr class="anim-row"><td style="color:#8b5cf6;font-family:monospace;font-size:11px">/v1/charges/{id}</td><td><span class="tag" style="background:#f9e2af20;color:#f9e2af">POST</span></td><td>Update a charge</td></tr><tr class="anim-row"><td style="color:#8b5cf6;font-family:monospace;font-size:11px">/v1/charges/{id}/capture</td><td><span class="tag" style="background:#a6e3a120;color:#a6e3a1">POST</span></td><td>Capture a charge</td></tr></table><div style="font-size:12px;color:#a6adc8;margin-top:6px">4 real endpoints with full parameter schemas. That\\'s <strong style="color:#a6e3a1">2\\u20134 hours of debugging saved</strong> per integration.</div>'},
     ]
   },
   // Scene 2: Guardrail
   {
     title: "openclaw-guardrail",
+    context: {
+      problem: "AI agents generate infrastructure code with public S3 buckets, open SSH ports, and unencrypted databases\\u2014without warning. One <code>terraform apply</code> and you\\'re breached.",
+      why: "The average cost of a cloud data breach is <strong style=\\"color:#f38ba8\\">$4.45 million</strong> (IBM 2024). Public S3 buckets alone caused 12 major breaches last year. AI-generated IaC makes this worse\\u2014agents don\\'t think about security by default.",
+      roi: "\\ud83d\\udcb0 <strong>ROI:</strong> Pre-deploy scanning is <strong style=\\"color:#a6e3a1\\">1,000x cheaper</strong> than incident response. Catching one public bucket saves regulatory fines, customer trust, and months of remediation."
+    },
     messages: [
       {type:'user', text:'Audit this Terraform before I deploy:\\nresource \\"aws_s3_bucket\\" \\"data\\" {\\n  acl = \\"public-read\\"\\n}\\nresource \\"aws_security_group\\" \\"ssh\\" {\\n  ingress { from_port=22; to_port=22; cidr_blocks=[\\"0.0.0.0/0\\"] }\\n}'},
       {type:'bot', avatar:'grd', html:'<div class="tool-call"><div class="tool-label">Tool Call</div>audit_infrastructure_code<span class="badge badge-grd">openclaw-guardrail</span></div>'},
-      {type:'bot', avatar:'grd', html:'<div style="font-size:13px;font-weight:700;color:#f38ba8;margin-bottom:10px">\\u26a0\\ufe0f 5 findings detected</div><table><tr><th>Severity</th><th>Resource</th><th>Issue</th></tr><tr class="anim-row"><td><span class="tag tag-crit">CRITICAL</span></td><td style="font-family:monospace;font-size:11px">aws_s3_bucket.data</td><td>Public read ACL exposes all objects</td></tr><tr class="anim-row"><td><span class="tag tag-crit">CRITICAL</span></td><td style="font-family:monospace;font-size:11px">aws_security_group.ssh</td><td>SSH open to 0.0.0.0/0 (the internet)</td></tr><tr class="anim-row"><td><span class="tag tag-high">HIGH</span></td><td style="font-family:monospace;font-size:11px">aws_s3_bucket.data</td><td>No server-side encryption configured</td></tr><tr class="anim-row"><td><span class="tag tag-high">HIGH</span></td><td style="font-family:monospace;font-size:11px">aws_s3_bucket.data</td><td>No versioning enabled</td></tr><tr class="anim-row"><td><span class="tag tag-med">MEDIUM</span></td><td style="font-family:monospace;font-size:11px">aws_s3_bucket.data</td><td>No access logging configured</td></tr></table><div style="font-size:12px;color:#f38ba8;margin-top:6px"><strong>Do not deploy.</strong> Fix the 2 critical issues first. Your S3 bucket is world-readable and SSH is open to the internet.</div>'},
+      {type:'bot', avatar:'grd', html:'<div style="font-size:13px;font-weight:700;color:#f38ba8;margin-bottom:10px">\\u26a0\\ufe0f 5 findings \\u2014 DEPLOYMENT BLOCKED</div><table><tr><th>Severity</th><th>Resource</th><th>Issue</th></tr><tr class="anim-row"><td><span class="tag tag-crit">CRITICAL</span></td><td style="font-family:monospace;font-size:11px">aws_s3_bucket.data</td><td>Public read ACL \\u2014 all objects exposed to internet</td></tr><tr class="anim-row"><td><span class="tag tag-crit">CRITICAL</span></td><td style="font-family:monospace;font-size:11px">aws_security_group.ssh</td><td>SSH open to 0.0.0.0/0 \\u2014 brute force target</td></tr><tr class="anim-row"><td><span class="tag tag-high">HIGH</span></td><td style="font-family:monospace;font-size:11px">aws_s3_bucket.data</td><td>No encryption \\u2014 fails SOC 2 / HIPAA compliance</td></tr><tr class="anim-row"><td><span class="tag tag-high">HIGH</span></td><td style="font-family:monospace;font-size:11px">aws_s3_bucket.data</td><td>No versioning \\u2014 no recovery from accidental deletion</td></tr><tr class="anim-row"><td><span class="tag tag-med">MEDIUM</span></td><td style="font-family:monospace;font-size:11px">aws_s3_bucket.data</td><td>No access logging \\u2014 invisible to audit trail</td></tr></table><div style="font-size:12px;color:#f38ba8;margin-top:6px"><strong>Without Guardrail:</strong> Agent runs <code>terraform apply</code>, your customer data is public, SSH is open to the world, and your next security audit fails. <strong>With Guardrail:</strong> caught in 200ms, before anything touches production.</div>'},
     ]
   },
   // Scene 3: Fortress
   {
     title: "openclaw-fortress",
+    context: {
+      problem: "Ghost costs\\u2014idle resources quietly billing you\\u2014are the #1 source of cloud waste. Gartner estimates <strong style=\\"color:#f38ba8\\">30% of cloud spend is wasted</strong> on resources nobody uses.",
+      why: "An oversized instance or forgotten NAT gateway costs nothing to provision but thousands per month to ignore. Teams don\\'t notice because the resource \\"works\\"\\u2014it\\'s just 600x more expensive than it needs to be.",
+      roi: "\\ud83d\\udcb0 <strong>ROI:</strong> Detecting one oversized m5.metal (\\u2192 t3.micro) saves <strong style=\\"color:#a6e3a1\\">$55,200/year</strong>. The idle NAT gateway adds another $389/year. Fortress pays for itself in the first scan."
+    },
     messages: [
       {type:'user', text:'Verify my production endpoint is live and check for ghost costs in our AWS account.'},
       {type:'bot', avatar:'frt', html:'<div class="tool-call"><div class="tool-label">Tool Call</div>verify_live_state<span class="badge badge-frt">openclaw-fortress</span></div><div style="color:#6c7086;font-size:11px;margin-top:4px">Running zero-trust verification against production...</div>'},
-      {type:'bot', avatar:'frt', html:'<div style="font-size:12px;color:#a6adc8;margin-bottom:10px">Live state verification complete:</div><table><tr><th>Check</th><th>Status</th><th>Impact</th></tr><tr class="anim-row"><td>API endpoint health</td><td><span class="ok">\\u2705 200 OK</span></td><td>\\u2014</td></tr><tr class="anim-row"><td>NAT Gateway (us-east-1)</td><td><span class="crit">\\u26a0\\ufe0f Idle</span></td><td class="cost-col" style="color:#f38ba8">$32.40/mo wasted</td></tr><tr class="anim-row"><td>Instance sizing</td><td><span class="warn">\\u26a0\\ufe0f Oversized</span></td><td class="cost-col" style="color:#fab387">m5.metal for API ($4,608/mo)</td></tr><tr class="anim-row"><td>Elastic IP (unattached)</td><td><span class="warn">\\u26a0\\ufe0f Idle</span></td><td class="cost-col" style="color:#fab387">$3.65/mo wasted</td></tr></table><div style="font-size:12px;color:#06b6d4;margin-top:8px"><strong>$4,644/mo</strong> in ghost costs detected. The m5.metal alone is 607x more than you need for a simple API (t3.micro: $7.59/mo).</div>'},
+      {type:'bot', avatar:'frt', html:'<div style="font-size:12px;color:#a6adc8;margin-bottom:10px">Live state verification complete:</div><table><tr><th>Check</th><th>Status</th><th>Annual Impact</th></tr><tr class="anim-row"><td>API endpoint health</td><td><span class="ok">\\u2705 200 OK</span></td><td>\\u2014</td></tr><tr class="anim-row"><td>NAT Gateway (us-east-1)</td><td><span class="crit">\\u26a0\\ufe0f Idle \\u2014 zero traffic</span></td><td class="cost-col" style="color:#f38ba8">$389/yr wasted</td></tr><tr class="anim-row"><td>Instance sizing</td><td><span class="warn">\\u26a0\\ufe0f m5.metal for a simple API</span></td><td class="cost-col" style="color:#f38ba8">$55,200/yr (vs $91/yr for t3.micro)</td></tr><tr class="anim-row"><td>Elastic IP (unattached)</td><td><span class="warn">\\u26a0\\ufe0f Idle \\u2014 not bound to instance</span></td><td class="cost-col" style="color:#fab387">$44/yr wasted</td></tr></table><div style="font-size:12px;color:#06b6d4;margin-top:8px"><strong>$55,633/year</strong> in ghost costs. Rightsizing the m5.metal alone puts <strong style="color:#a6e3a1">$55,109 back in your budget</strong>. This single scan pays for 9 years of Enterprise tier.</div>'},
     ]
   },
   // Scene 4: Revenue Gate
   {
     title: "Revenue-Gated MCP",
+    context: {
+      problem: "MCP servers need to monetize, but AI agents consume tools via protocol\\u2014not browsers. Standard HTTP paywalls (402/429) get swallowed by the transport layer and the user never sees them.",
+      why: "If your MCP server returns HTTP 402, the agent\\'s client silently fails. The user has no idea why the tool stopped working. <strong style=\\"color:#f38ba8\\">You lose the conversion because the CTA never reaches the human.</strong>",
+      roi: "\\ud83d\\udcb0 <strong>ROI:</strong> Revenue Gate delivers upgrade prompts inside the conversation, at the exact moment of intent. <strong style=\\"color:#a6e3a1\\">Conversion happens where attention lives</strong>\\u2014not on a billing page the user has to find."
+    },
     messages: [
       {type:'user', text:'What would it cost to run a t3.medium on AWS for a month?'},
       {type:'bot', avatar:'fin', html:'<div class="tool-call"><div class="tool-label">Tool Call</div>forecast_deployment_cost<span class="badge badge-fin">openclaw-finops</span></div>'},
-      {type:'bot', avatar:'fin', html:'<div class="gate"><div class="gate-title">\\ud83d\\udd12 Free Tier Limit Reached</div><p>You\\'ve used 25/25 free operations this month.</p><p style="margin-top:8px;color:#cdd6f4">Upgrade to <strong style="color:#f97316">Pro ($29/mo)</strong> for 500 ops/month:</p><p style="margin-top:4px"><a href="#">\\u2192 Upgrade now</a></p></div><div style="font-size:11px;color:#6c7086;margin-top:8px;font-style:italic">This message was delivered inside the conversation via MCP\\'s isError:true flag \\u2014 not as an HTTP error that gets swallowed by the transport layer.</div>'},
-      {type:'bot', avatar:'fin', html:'<div style="font-size:12px;color:#a6adc8">This is <strong style="color:#f97316">Revenue-Gated MCP</strong> \\u2014 a monetization pattern designed for AI tool access. The upgrade prompt reaches the user through the agent\\'s conversation, exactly where intent lives.</div><div style="font-size:12px;color:#6c7086;margin-top:8px">HTTP 402/429 \\u2192 agent swallows it, user never sees it \\u2718<br>MCP isError:true \\u2192 agent surfaces it in chat \\u2714</div>'},
+      {type:'bot', avatar:'fin', html:'<div class="gate"><div class="gate-title">\\ud83d\\udd12 Free Tier Limit Reached</div><p>You\\'ve used 25/25 free operations this month.</p><p style="margin-top:8px;color:#cdd6f4">Upgrade to <strong style="color:#f97316">Pro ($29/mo)</strong> for 500 ops/month \\u2014 that\\'s <strong>$0.058 per forecast</strong>:</p><p style="margin-top:4px"><a href="#">\\u2192 Upgrade now</a></p></div><div style="font-size:11px;color:#6c7086;margin-top:8px;font-style:italic">This message was delivered inside the conversation via MCP\\'s isError:true flag \\u2014 not as an HTTP error that gets swallowed by the transport layer.</div>'},
+      {type:'bot', avatar:'fin', html:'<div style="font-size:12px;color:#a6adc8">This is <strong style="color:#f97316">Revenue-Gated MCP</strong> \\u2014 the monetization pattern for AI tool access. The upgrade prompt reaches the human through the agent\\'s conversation, exactly where intent lives.</div><div style="font-size:12px;color:#6c7086;margin-top:10px">\\u274c HTTP 402/429 \\u2192 agent swallows it, user never sees it, conversion lost<br>\\u2705 MCP isError:true \\u2192 agent surfaces it in chat, user acts immediately</div><div style="font-size:12px;margin-top:10px;color:#a6adc8">If you\\'re building MCP servers and need to monetize, this pattern is <a href="https://github.com/maryadawson-code/openclaw-finops" style="color:#f97316">open source and documented</a> for you to use.</div>'},
     ]
   },
 ];
@@ -199,9 +236,18 @@ async function playScene(idx) {
   const scene = SCENES[idx];
   const chat = document.getElementById('chat');
   const progress = document.getElementById('progress');
+  const banner = document.getElementById('ctxBanner');
   document.getElementById('titletext').textContent = scene.title;
   chat.innerHTML = '';
   progress.style.width = '0%';
+
+  // Show context banner
+  banner.classList.remove('show');
+  await sleep(100);
+  document.getElementById('ctxProblem').innerHTML = '<strong>The problem:</strong> ' + scene.context.problem;
+  document.getElementById('ctxWhy').innerHTML = scene.context.why;
+  document.getElementById('ctxRoi').innerHTML = scene.context.roi;
+  banner.classList.add('show');
 
   const totalSteps = scene.messages.length;
   for (let i = 0; i < scene.messages.length; i++) {
