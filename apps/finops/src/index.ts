@@ -471,30 +471,61 @@ app.get("/.well-known/mcp/server-card.json", (c) => {
   return c.json({
     name: "IntegrityPulse FinOps",
     description: "Cloud deployment cost forecasting for AI agents. Returns verified, line-item pricing for AWS, GCP, and Azure directly inside agent conversations. Free tier includes 25 operations/month.",
-    version: "1.0.0",
+    version: "1.1.0",
     tools: [
       {
         name: "forecast_deployment_cost",
-        description: "Estimate monthly cloud deployment cost with a line-item breakdown. Supports AWS, GCP, and Azure.",
+        description: "Estimate monthly cloud deployment cost with a line-item breakdown. Supports AWS, GCP, Azure, Lambda Labs, CoreWeave, and Vast.ai.",
+        annotations: {
+          title: "Forecast Deployment Cost",
+          readOnlyHint: true,
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: false,
+        },
         inputSchema: {
           type: "object",
           properties: {
-            provider: { type: "string", enum: ["AWS", "GCP", "AZURE"], description: "Cloud provider" },
+            provider: { type: "string", enum: ["AWS", "GCP", "AZURE", "LAMBDA_LABS", "COREWEAVE", "VAST_AI"], description: "Cloud provider. Major clouds: AWS, GCP, AZURE. GPU specialists: LAMBDA_LABS, COREWEAVE, VAST_AI" },
             services_to_add: {
               type: "array",
               items: {
                 type: "object",
                 properties: {
-                  service_name: { type: "string", description: "Service identifier (e.g., ec2.m5.large, rds.postgres.db.m5.large)" },
-                  estimated_usage_hours: { type: "number", description: "Monthly usage hours (730 = full month)" },
+                  service_name: { type: "string", description: "Service/instance identifier from the pricing matrix (e.g., ec2.m5.large, rds.postgres.db.m5.large)" },
+                  estimated_usage_hours: { type: "number", description: "Monthly usage hours (730 = full month, 0 defaults to 730)" },
                 },
                 required: ["service_name"],
               },
-              description: "List of services to price",
+              description: "List of services to forecast",
             },
           },
           required: ["provider", "services_to_add"],
         },
+      },
+    ],
+    prompts: [
+      {
+        name: "cost-comparison",
+        description: "Compare cloud deployment costs across two or three providers for the same set of services",
+      },
+      {
+        name: "budget-check",
+        description: "Check if a proposed deployment fits within a monthly budget",
+      },
+    ],
+    resources: [
+      {
+        name: "pricing-catalog",
+        uri: "integritypulse://pricing/catalog",
+        description: "Complete pricing catalog for all supported cloud providers and services",
+        mimeType: "application/json",
+      },
+      {
+        name: "pricing-provider",
+        uriTemplate: "integritypulse://pricing/{provider}",
+        description: "Detailed pricing for a specific cloud provider",
+        mimeType: "application/json",
       },
     ],
     authentication: {

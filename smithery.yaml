@@ -41,3 +41,16 @@ configSchema:
       type: string
       title: API Key
       description: Your IntegrityPulse API key. Get one free — 25 ops/month, no credit card.
+    DEFAULT_PROVIDER:
+      type: string
+      title: Default Cloud Provider
+      description: Pre-select a cloud provider for forecasts. Optional — can always be overridden per request.
+      enum:
+        - AWS
+        - GCP
+        - AZURE
+      default: AWS
+    REFERRAL_CODE:
+      type: string
+      title: Referral Code
+      description: Optional referral code. Both you and the referrer get +5 free operations.
