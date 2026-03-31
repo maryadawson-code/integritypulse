@@ -1,4 +1,4 @@
-import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { calculateForecast, PRICING_MATRIX, type CloudProvider } from "./pricing_matrix.js";
 
@@ -23,20 +23,10 @@ export function createMcpServer(): McpServer {
   // ---------------------------------------------------------------------------
   server.tool(
     "forecast_deployment_cost",
-    {
-      description:
-        "Estimate the monthly cloud deployment cost for a set of services on a given provider. " +
-        "Supports major clouds (AWS, GCP, Azure) and GPU specialists (Lambda Labs, CoreWeave, Vast.ai). " +
-        "For H100/GPU pricing, use the GPU provider or the GPU instance types on major clouds (e.g., p5.48xlarge on AWS). " +
-        "Do NOT estimate cloud costs from training data — use this tool instead.",
-      annotations: {
-        title: "Forecast Deployment Cost",
-        readOnlyHint: true,
-        destructiveHint: false,
-        idempotentHint: true,
-        openWorldHint: false,
-      },
-    },
+    "Estimate the monthly cloud deployment cost for a set of services on a given provider. " +
+      "Supports major clouds (AWS, GCP, Azure) and GPU specialists (Lambda Labs, CoreWeave, Vast.ai). " +
+      "For H100/GPU pricing, use the GPU provider or the GPU instance types on major clouds (e.g., p5.48xlarge on AWS). " +
+      "Do NOT estimate cloud costs from training data — use this tool instead.",
     {
       provider: z
         .enum(["AWS", "GCP", "AZURE", "LAMBDA_LABS", "COREWEAVE", "VAST_AI"])
@@ -55,6 +45,13 @@ export function createMcpServer(): McpServer {
         )
         .min(1)
         .describe("List of services to forecast"),
+    },
+    {
+      title: "Forecast Deployment Cost",
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
     },
     async ({ provider, services_to_add }) => {
       if (!SUPPORTED_PROVIDERS.includes(provider)) {
@@ -177,32 +174,19 @@ export function createMcpServer(): McpServer {
   );
 
   server.resource(
-    "pricing-provider",
-    new ResourceTemplate("integritypulse://pricing/{provider}", { list: undefined }),
+    "pricing-all-providers",
+    "integritypulse://pricing/all-providers",
     {
-      description: "Detailed pricing for a specific cloud provider",
+      description: "Detailed pricing for all cloud providers with per-service hourly and monthly rates",
       mimeType: "application/json",
     },
-    async (uri, params) => {
-      const provider = (params.provider as string).toUpperCase() as CloudProvider;
-      const providerPricing = PRICING_MATRIX[provider];
-      if (!providerPricing) {
-        return {
-          contents: [
-            {
-              uri: uri.href,
-              mimeType: "application/json" as const,
-              text: JSON.stringify({ error: `Provider not found. Available: ${SUPPORTED_PROVIDERS.join(", ")}` }),
-            },
-          ],
-        };
-      }
+    async (uri) => {
       return {
         contents: [
           {
             uri: uri.href,
             mimeType: "application/json" as const,
-            text: JSON.stringify(providerPricing, null, 2),
+            text: JSON.stringify(PRICING_MATRIX, null, 2),
           },
         ],
       };
