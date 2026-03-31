@@ -30,7 +30,18 @@ app.get("/", (c) => {
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>OpenClaw FinOps — Verified Cloud Pricing for AI Agents</title>
-<meta name="description" content="Stop AI agents from hallucinating cloud costs. Verified pricing for AWS, GCP, and Azure via MCP.">
+<meta name="description" content="Stop AI agents from hallucinating cloud costs. Verified pricing for AWS, GCP, and Azure via MCP. Free tier: 25 ops/month.">
+<meta property="og:title" content="OpenClaw FinOps — Verified Cloud Pricing for AI Agents">
+<meta property="og:description" content="LLMs say RDS costs $15/mo. Real price: $204. OpenClaw gives AI agents verified pricing for AWS, GCP, and Azure. Free tier available.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://openclaw-finops.marywomack.workers.dev">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="OpenClaw FinOps — Stop AI Cost Hallucinations">
+<meta name="twitter:description" content="AI agents are wrong about cloud pricing by 5-15x. OpenClaw returns verified costs for AWS, GCP, Azure via MCP.">
+<link rel="canonical" href="https://openclaw-finops.marywomack.workers.dev">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"OpenClaw FinOps","applicationCategory":"DeveloperApplication","operatingSystem":"Cloud","description":"Revenue-gated MCP server for AI cloud cost forecasting. Verified pricing for AWS, GCP, and Azure. Prevents LLM cost hallucinations.","url":"https://openclaw-finops.marywomack.workers.dev","offers":[{"@type":"Offer","name":"Free","price":"0","priceCurrency":"USD","description":"25 operations per month"},{"@type":"Offer","name":"Pro","price":"29","priceCurrency":"USD","description":"500 operations per month"},{"@type":"Offer","name":"Team","price":"99","priceCurrency":"USD","description":"2000 operations per month"},{"@type":"Offer","name":"Enterprise","price":"499","priceCurrency":"USD","description":"50000 operations per month"}],"author":{"@type":"Organization","name":"Mission Meets Tech","url":"https://missionmeetstech.com"},"codeRepository":"https://github.com/maryadawson-code/openclaw-finops","license":"https://opensource.org/licenses/MIT","keywords":"MCP,FinOps,cloud pricing,AI agents,AWS,GCP,Azure,cost forecasting,Model Context Protocol"}
+</script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a0a;color:#e0e0e0;line-height:1.6}
@@ -249,6 +260,56 @@ app.post("/try", async (c) => {
   } catch (e: any) {
     return c.json({ error: e.message || "Invalid request" }, 400);
   }
+});
+
+// ---------------------------------------------------------------------------
+// SEO: robots.txt — welcome all crawlers and AI bots
+// ---------------------------------------------------------------------------
+app.get("/robots.txt", (c) => c.text(`User-agent: *
+Allow: /
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Bytespider
+Allow: /
+
+Sitemap: https://openclaw-finops.marywomack.workers.dev/sitemap.xml
+`));
+
+// ---------------------------------------------------------------------------
+// SEO: sitemap.xml
+// ---------------------------------------------------------------------------
+app.get("/sitemap.xml", (c) => {
+  c.header("Content-Type", "application/xml");
+  return c.body(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://openclaw-finops.marywomack.workers.dev/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://openclaw-finops.marywomack.workers.dev/demo</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://openclaw-finops.marywomack.workers.dev/try</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://openclaw-finops.marywomack.workers.dev/llms.txt</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://openclaw-finops.marywomack.workers.dev/llms-full.txt</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://openclaw-finops.marywomack.workers.dev/.well-known/mcp</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://openclaw-finops.marywomack.workers.dev/.well-known/agent.json</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+</urlset>`);
 });
 
 // ---------------------------------------------------------------------------
