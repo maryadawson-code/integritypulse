@@ -6,6 +6,8 @@ startCommand:
   transport: streamable-http
   headers:
     x-api-key: "${API_KEY}"
+    x-default-provider: "${DEFAULT_PROVIDER}"
+    x-referral-code: "${REFERRAL_CODE}"
 
 name: integritypulse
 display_name: "IntegrityPulse Integrity Suite — FinOps + Security + API Verification"
